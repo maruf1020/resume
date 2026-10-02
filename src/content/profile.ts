@@ -5,7 +5,7 @@ export const profile = {
   role: "Lead Software Engineer",
   headline: "Full-stack JavaScript & TypeScript · React, Next.js, Node.js, NestJS · AWS & Azure",
   location: "Dhaka, Bangladesh",
-  openTo: "Open to on-site roles in Bangladesh, relocation abroad, or remote work",
+  openTo: "Prefer on-site roles in Bangladesh or relocation abroad",
   /** The "Hire me" card. */
   hire: {
     lookingFor: [
@@ -16,7 +16,7 @@ export const profile = {
       },
       {
         k: "Where",
-        v: "On-site in Dhaka or anywhere in Bangladesh, relocation abroad, or fully remote",
+        v: "On-site in Dhaka or anywhere in Bangladesh, or relocation abroad",
         note: "Used to working across time zones with teams in France, the UK and Germany.",
       },
     ],

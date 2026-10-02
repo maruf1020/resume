@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { introPools, longestIntro, staticIntro } from "@/content/intro";
+import { introPools, introSchedule, longestIntro, staticIntro } from "@/content/intro";
 
 type Seg = { text: string; typing: boolean };
 
@@ -19,10 +19,6 @@ function parse(line: string): (string | number)[] {
   return line.split(/(\^\d+)/).flatMap<string | number>((part) => (part.startsWith("^") ? [Number(part.slice(1))] : [...part]));
 }
 const clean = (line: string) => line.replace(/\^\d+/g, "");
-const pick = <T,>(arr: T[], not?: T) => {
-  const options = arr.length > 1 && not !== undefined ? arr.filter((x) => x !== not) : arr;
-  return options[Math.floor(Math.random() * options.length)];
-};
 
 const MAX_LINES = 4;
 const LINE_HEIGHT = 1.06;
@@ -114,19 +110,23 @@ export function TypedIntro() {
 
     (async () => {
       await sleep(350, signal);
+      // First pass: line 0 of every part - a short, real introduction.
       for (const [i, pool] of introPools.entries()) {
-        if (!pool.firstPass) continue;
-        await type(i, pick(pool.lines));
+        if (pool.firstPass === false) continue;
+        await type(i, pool.lines[0]);
         await sleep(420, signal);
       }
-      // Rotation: swap one sentence at a time, forever.
-      for (;;) {
+      // Then swap one part at a time in a fixed order; each part steps through its own lines.
+      const next: number[] = introPools.map((p) => (p.firstPass === false ? 0 : 1));
+      for (let step = 0; ; step = (step + 1) % introSchedule.length) {
         await sleep(2600, signal);
-        const i = Math.floor(Math.random() * introPools.length);
+        const i = introPools.findIndex((p) => p.id === introSchedule[step]);
+        if (i < 0) continue;
         const pool = introPools[i];
         if (current[i]) await erase(i);
         await sleep(160, signal);
-        await type(i, pick(pool.lines, current[i]));
+        await type(i, pool.lines[next[i] % pool.lines.length]);
+        next[i] = (next[i] + 1) % pool.lines.length;
       }
     })().catch(() => {});
 

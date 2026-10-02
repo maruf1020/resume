@@ -9,6 +9,15 @@ export type VisitorInfo = {
   timezone?: string;
   referrer?: string;
   screen?: string;
+  /** Only with analytics consent: */
+  viewport?: string;
+  platform?: string;
+  pixelRatio?: number;
+  colorScheme?: string;
+  touch?: boolean;
+  landing?: string;
+  utm?: string;
+  visits?: number;
 };
 
 export type ContactEntry = {
@@ -41,19 +50,33 @@ export type VoteEntry = {
   value: "up" | "down";
 };
 
+/** Analytics event. With consent it carries the visitor; without, it is anonymous (type + answer only). */
+export type EventEntry = {
+  id: string;
+  at: string;
+  type: "pageview" | "ask";
+  intentId?: string;
+  path?: string;
+  consent: boolean;
+  visitor?: VisitorInfo;
+};
+
 export type Db = {
   version: 1;
   contacts: ContactEntry[];
   feedback: FeedbackEntry[];
   votes: VoteEntry[];
+  events: EventEntry[];
 };
 
 /** Hard cap per list so a spammer can't grow the file without bound. */
 export const MAX_ENTRIES = 5000;
+/** Events are a rolling window: the oldest drop off past this. */
+export const MAX_EVENTS = 20000;
 
 // Runtime data file, not a build input: tell the bundler not to trace it.
 const dbFile = () => path.resolve(/*turbopackIgnore: true*/ process.cwd(), process.env.FEEDBACK_DB_PATH || "data/feedback.json");
-const empty = (): Db => ({ version: 1, contacts: [], feedback: [], votes: [] });
+const empty = (): Db => ({ version: 1, contacts: [], feedback: [], votes: [], events: [] });
 
 async function read(): Promise<Db> {
   try {

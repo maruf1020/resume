@@ -1,60 +1,69 @@
-// Rotating sentence pools for the typed hero. One line from each pool is typed on the first pass,
-// then random pools swap their line for another. `^n` pauses typing for n ms.
+// Sentence pools for the typed hero. The first pass types line 0 of every pool - a short, real intro.
+// After that, parts are swapped one at a time following `introSchedule`, each pool stepping through its
+// own lines in order. Every line is a complete sentence. `^n` pauses typing for n ms.
 // Keep lines short: the heading is sized so the longest possible combination fits in 4 lines.
-export type IntroPool = { id: string; lines: string[]; firstPass: boolean };
+export type IntroPool = { id: string; lines: string[]; /** false = starts empty and joins later. */ firstPass?: boolean };
 
 export const introPools: IntroPool[] = [
-  { id: "hello", firstPass: true, lines: ["Hi.", "Hey.", "Hello.", "Hi there.", "Hey there.", "Oh,^250 hi."] },
-  { id: "name", firstPass: true, lines: ["I'm Maruf.", "Maruf here.", "This is Maruf."] },
+  { id: "hello", lines: ["Hi, I'm Maruf Billah.", "Hello, I'm Maruf.", "Hey there, I'm Maruf."] },
   {
-    id: "work",
-    firstPass: true,
+    id: "role",
     lines: [
+      "I'm a Lead Software Engineer.",
       "I lead 10 engineers.",
       "I still ship code.",
       "I build full-stack apps.",
       "I design APIs that scale.",
       "I run it all on AWS.",
       "I ship with CI/CD.",
-      "Cloud and DevOps, end to end.",
-      "Docker, Lambda, ECS, EC2.",
-      "I've written 500k+ lines of code.",
+      "I deploy on Docker and ECS.",
       "I build tools teams use.",
-      "3 years in luxury e-commerce.",
     ],
   },
-  { id: "where", firstPass: true, lines: ["Open to relocating globally.", "Happy to work remotely.", "On-site, abroad or remote."] },
+  {
+    id: "experience",
+    lines: [
+      "I have 5+ years of professional experience.",
+      "I've written 500k+ lines of code.",
+      "I spent 3 years on luxury brands.",
+      "I'm open to relocating globally.",
+      "I prefer working on-site.",
+      "I'm ready to relocate.",
+    ],
+  },
   {
     id: "belief",
-    firstPass: true,
+    firstPass: false,
     lines: [
-      "Ask me anything.",
       "I believe nothing is impossible.",
-      "Languages are just syntax.",
-      "An experiment beats an opinion.",
-      "Ship small, ship often.",
-      "Simple is hard. Worth it.",
-      "Stay curious. Keep shipping.",
+      "I believe languages are just syntax.",
+      "I trust experiments over opinions.",
+      "I ship small and ship often.",
+      "I stay curious and keep shipping.",
+      "Ask me anything.",
     ],
   },
 ];
 
-export const staticIntro = "Hi there. I'm Maruf. I lead 10 engineers. Open to relocating globally. Ask me anything.";
+/** Which part changes next, in a loop. The greeting changes rarely. */
+export const introSchedule = ["belief", "role", "experience", "belief", "role", "experience", "belief", "role", "hello", "belief", "role", "experience"];
+
+export const staticIntro = "Hi, I'm Maruf Billah. I'm a Lead Software Engineer. I have 5+ years of professional experience.";
 
 /** The longest sentence the typing loop can ever show, used to size the heading. */
 export const longestIntro = introPools
   .map((p) => p.lines.map((l) => l.replace(/\^\d+/g, "")).reduce((a, b) => (b.length > a.length ? b : a), ""))
   .join(" ");
 
-/** Things I believe - rotated under the heading and listed in "What I believe". */
+/** Things I believe - listed in the "What I believe" answer. */
 export const beliefs: string[] = [
   "I believe nothing is impossible.",
-  "I'm an engineer. Languages are just syntax.",
-  "Good code is code the next person can change.",
-  "An experiment beats an opinion.",
-  "Ship small, ship often, measure everything.",
-  "Simple is hard. That's why it's worth it.",
-  "Every bug is a lesson in disguise.",
-  "The best teams make each other better.",
-  "Stay curious. Keep learning. Keep shipping.",
+  "I believe languages are just syntax.",
+  "I believe good code is code the next person can change.",
+  "I believe an experiment beats an opinion.",
+  "I ship small, ship often and measure everything.",
+  "I believe simple is hard - and worth it.",
+  "I treat every bug as a lesson.",
+  "I believe the best teams make each other better.",
+  "I stay curious, keep learning and keep shipping.",
 ];

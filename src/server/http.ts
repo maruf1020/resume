@@ -46,6 +46,25 @@ export function visitorFrom(value: unknown, req: Request): VisitorInfo | null {
   };
 }
 
+/** visitorFrom plus the consent-only details. */
+export function extendedVisitor(value: unknown, req: Request) {
+  const base = visitorFrom(value, req);
+  if (!base) return null;
+  const v = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const num = (x: unknown, max: number) => (typeof x === "number" && Number.isFinite(x) && x >= 0 && x <= max ? x : undefined);
+  return {
+    ...base,
+    viewport: str(v.viewport, 20),
+    platform: str(v.platform, 40),
+    pixelRatio: num(v.pixelRatio, 8),
+    colorScheme: str(v.colorScheme, 10),
+    touch: typeof v.touch === "boolean" ? v.touch : undefined,
+    landing: str(v.landing, 200),
+    utm: str(v.utm, 200),
+    visits: num(v.visits, 100000),
+  };
+}
+
 // ---------- in-memory rate limiting (per process) ----------
 const hits = new Map<string, number[]>();
 

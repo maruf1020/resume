@@ -2,7 +2,6 @@
 
 import { useCallback, useReducer } from "react";
 import { fallbackIntent, getIntent } from "@/content/intents";
-import type { SavedMessage } from "./history";
 import { askPath, withBase } from "./utils";
 
 export type Phase = "thinking" | "streaming" | "done";
@@ -26,8 +25,7 @@ type Action =
   | { type: "phase"; id: string; phase: Phase }
   | { type: "stop" }
   | { type: "regenerate"; id: string }
-  | { type: "reset" }
-  | { type: "load"; messages: SavedMessage[] };
+  | { type: "reset" };
 
 const finishAll = (messages: Message[]) =>
   messages.map((m) => (m.role === "assistant" && m.phase !== "done" ? { ...m, phase: "done" as const } : m));
@@ -59,17 +57,6 @@ function reducer(state: State, action: Action): State {
           m.id === action.id && m.role === "assistant" ? { ...m, variant: m.variant + 1, phase: "thinking", animate: true } : m,
         ),
       };
-    case "load": {
-      // Restored chats appear instantly, fully answered.
-      let seq = state.seq;
-      const messages: Message[] = action.messages.map((m) => {
-        seq += 1;
-        return m.role === "user"
-          ? { id: `u${seq}`, role: "user", text: m.text }
-          : { id: `a${seq}`, role: "assistant", intentId: m.intentId, variant: m.variant, phase: "done", animate: false };
-      });
-      return { messages, seq };
-    }
     case "reset":
       return { messages: [], seq: state.seq };
   }
@@ -112,12 +99,7 @@ export function useChat(initialIntent?: string) {
 
   const generating = state.messages.some((m) => m.role === "assistant" && m.phase !== "done");
 
-  const load = useCallback((messages: SavedMessage[]) => {
-    dispatch({ type: "load", messages });
-    syncUrl(withBase("/"));
-  }, []);
-
-  return { messages: state.messages, generating, ask, setPhase, stop, regenerate, reset, load };
+  return { messages: state.messages, generating, ask, setPhase, stop, regenerate, reset };
 }
 
 export type Chat = ReturnType<typeof useChat>;

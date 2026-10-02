@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Github, Linkedin } from "@/components/brand-icons";
 import { ContactForm, FeedbackForm } from "./forms";
+import { PrivacyChoice } from "@/components/consent";
 import { cloud, education, farewell, farewellCard, languages, quotes, siteStack, skills } from "@/content/details";
 import { experience } from "@/content/experience";
 import { primaryIntents, type Block } from "@/content/intents";
@@ -33,6 +34,8 @@ export function BlockView({ block, onAsk }: { block: Block; onAsk: Ask }) {
       return <Focus />;
     case "beliefs":
       return <Beliefs />;
+    case "privacy":
+      return <PrivacyChoice />;
     case "experience":
       return <Experience />;
     case "projects":

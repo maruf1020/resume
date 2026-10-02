@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, MotionConfig, motion } from "motion/react";
 import { ArrowDown } from "lucide-react";
 import { Composer, type ComposerHandle } from "@/components/chat/composer";
+import { ConsentBanner } from "@/components/consent";
 import { PhotoViewerProvider } from "@/components/photo-viewer";
 import { AssistantMessage, UserMessage } from "@/components/chat/messages";
 import { SuggestionChips } from "@/components/chat/suggestion-chips";
@@ -17,6 +18,7 @@ const LANDING = ["about", "experience", "projects", "skills", "hire"]
   .map((id) => getIntent(id))
   .filter((i): i is Intent => !!i);
 import { useChat } from "@/lib/chat";
+import { startSession, track } from "@/lib/consent";
 
 export function ChatApp({ initialIntent }: { initialIntent?: string }) {
   const chat = useChat(initialIntent);
@@ -35,9 +37,16 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
     (intentId: string, text?: string) => {
       setDrawer(false);
       chatAsk(intentId, text);
+      track("ask", { intentId });
     },
     [chatAsk],
   );
+
+  // One anonymous page view per load (device details only if the visitor accepted).
+  useEffect(() => {
+    startSession();
+    track("pageview", { path: window.location.pathname });
+  }, []);
 
   const reset = () => {
     setDrawer(false);
@@ -89,6 +98,7 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
   return (
     <MotionConfig reducedMotion="user">
     <PhotoViewerProvider>
+    <ConsentBanner onLearnMore={() => chatAsk("privacy")} />
     <div className="flex h-dvh overflow-hidden">
       {/* Desktop sidebar: full panel or a slim icon rail */}
       <motion.aside

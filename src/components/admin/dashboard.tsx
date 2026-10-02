@@ -24,11 +24,12 @@ import {
   Users,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-provider";
+import { Analytics } from "./analytics";
 import type { Db, VisitorInfo } from "@/server/store";
 import { cn, withBase } from "@/lib/utils";
 
 type Props = { db: Db; labels: Record<string, string> };
-type Tab = "all" | "messages" | "feedback" | "votes" | "visitors";
+type Tab = "all" | "messages" | "feedback" | "votes" | "visitors" | "analytics";
 
 type Item = {
   id: string;
@@ -53,6 +54,9 @@ type Visitor = {
   first: string;
   last: string;
   items: Item[];
+  /** From analytics events (only for visitors who accepted). */
+  views: number;
+  asked: string[];
 };
 
 // ---------- helpers ----------
@@ -177,12 +181,24 @@ function buildItems(db: Db, labels: Record<string, string>): Item[] {
   ].sort((a, b) => b.at.localeCompare(a.at));
 }
 
-function buildVisitors(db: Db, items: Item[]): Visitor[] {
+function buildVisitors(db: Db, items: Item[], labels: Record<string, string>): Visitor[] {
   const infos = new Map<string, VisitorInfo>();
+  const known = (db.events ?? []).filter((e) => e.visitor);
   for (const e of [...db.contacts, ...db.feedback, ...db.votes]) infos.set(e.visitor.visitorId, { ...infos.get(e.visitor.visitorId), ...e.visitor });
+  for (const e of known) infos.set(e.visitor!.visitorId, { ...infos.get(e.visitor!.visitorId), ...e.visitor! });
   const map = new Map<string, Visitor>();
+  const blank = (id: string, at: string): Visitor => ({ id, info: infos.get(id)!, first: at, last: at, items: [], views: 0, asked: [] });
+  for (const e of known) {
+    const id = e.visitor!.visitorId;
+    const v = map.get(id) ?? blank(id, e.at);
+    if (e.type === "pageview") v.views++;
+    else if (e.intentId) v.asked.push(labels[e.intentId] ?? e.intentId);
+    if (e.at < v.first) v.first = e.at;
+    if (e.at > v.last) v.last = e.at;
+    map.set(id, v);
+  }
   for (const it of items) {
-    const v = map.get(it.visitorId) ?? { id: it.visitorId, info: infos.get(it.visitorId)!, first: it.at, last: it.at, items: [] };
+    const v = map.get(it.visitorId) ?? blank(it.visitorId, it.at);
     v.items.push(it);
     if (it.at < v.first) v.first = it.at;
     if (it.at > v.last) v.last = it.at;
@@ -204,7 +220,7 @@ export function AdminDashboard({ db, labels }: Props) {
   const searchRef = useRef<HTMLInputElement>(null);
 
   const items = useMemo(() => buildItems(db, labels), [db, labels]);
-  const visitors = useMemo(() => buildVisitors(db, items), [db, items]);
+  const visitors = useMemo(() => buildVisitors(db, items, labels), [db, items, labels]);
   const byVisitor = useMemo(() => new Map(visitors.map((v) => [v.id, v])), [visitors]);
 
   const needle = q.trim().toLowerCase();
@@ -245,6 +261,7 @@ export function AdminDashboard({ db, labels }: Props) {
     { id: "feedback", label: "Feedback", count: db.feedback.length },
     { id: "votes", label: "Votes", count: db.votes.length },
     { id: "visitors", label: "Visitors", count: visitors.length },
+    { id: "analytics", label: "Analytics", count: (db.events ?? []).filter((e) => e.type === "pageview").length },
   ];
 
   const selectedItem = tab !== "visitors" ? items.find((i) => i.id === selected) : undefined;
@@ -349,7 +366,12 @@ export function AdminDashboard({ db, labels }: Props) {
           </label>
         </div>
 
-        {/* Two panes */}
+        {tab === "analytics" ? (
+          <div className="overflow-hidden rounded-2xl border border-line bg-bg">
+            <Analytics db={db} labels={labels} />
+          </div>
+        ) : (
+        /* Two panes */
         <div className="grid min-h-[28rem] flex-1 overflow-hidden rounded-2xl border border-line bg-bg lg:grid-cols-[minmax(20rem,26rem)_1fr]">
           {/* List */}
           <div className={cn("min-h-0 border-line lg:border-r", hasDetail && "hidden lg:block")}>
@@ -370,7 +392,7 @@ export function AdminDashboard({ db, labels }: Props) {
                           </span>
                         </span>
                         <span className="block truncate text-sm text-muted">
-                          {v.email ?? device(v.info.userAgent)} · {v.items.length} {v.items.length === 1 ? "action" : "actions"}
+                          {v.email ?? device(v.info.userAgent)} · {v.items.length ? `${v.items.length} ${v.items.length === 1 ? "action" : "actions"}` : `${v.views} ${v.views === 1 ? "visit" : "visits"}, ${v.asked.length} questions`}
                         </span>
                       </span>
                     </button>
@@ -429,6 +451,7 @@ export function AdminDashboard({ db, labels }: Props) {
             )}
           </div>
         </div>
+        )}
       </main>
     </div>
   );
@@ -490,6 +513,13 @@ function Detail({ item, visitor, now, onBack, onPick }: { item?: Item; visitor: 
     { icon: Languages, v: visitor.info.language },
     { icon: Monitor, v: visitor.info.screen && `Screen ${visitor.info.screen}` },
     { icon: Globe, v: visitor.info.referrer && `From ${visitor.info.referrer.replace(/^https?:\/\//, "").slice(0, 40)}` },
+    { icon: Monitor, v: visitor.info.viewport && `Window ${visitor.info.viewport}` },
+    { icon: Monitor, v: visitor.info.platform && `Platform ${visitor.info.platform}` },
+    { icon: Monitor, v: visitor.info.colorScheme && `${visitor.info.colorScheme} mode` },
+    { icon: Monitor, v: visitor.info.touch !== undefined && (visitor.info.touch ? "Touch screen" : "Mouse / trackpad") },
+    { icon: Globe, v: visitor.info.utm && `Campaign ${visitor.info.utm}` },
+    { icon: Globe, v: visitor.info.landing && `Landed on ${visitor.info.landing}` },
+    { icon: Users, v: visitor.info.visits && `${visitor.info.visits} ${visitor.info.visits === 1 ? "visit" : "visits"}` },
   ].filter((c) => c.v);
 
   const subject = encodeURIComponent(item?.kind === "message" ? "Re: your message" : "Thanks for your feedback");
@@ -550,6 +580,24 @@ function Detail({ item, visitor, now, onBack, onPick }: { item?: Item; visitor: 
               <p className="mt-3 text-[15px] leading-relaxed whitespace-pre-wrap">{item.body}</p>
             ) : (
               <p className="mt-3 text-sm text-muted">{item.kind === "vote" ? `${item.value === "up" ? "Found this answer helpful." : "Felt this answer missed the mark."}` : "No comment left."}</p>
+            )}
+          </section>
+        )}
+
+        {(visitor.views > 0 || visitor.asked.length > 0) && (
+          <section className="rounded-2xl border border-line p-5">
+            <h3 className="eyebrow mb-2">Browsing</h3>
+            <p className="text-sm text-muted">
+              {visitor.views} {visitor.views === 1 ? "visit" : "visits"} · {visitor.asked.length} {visitor.asked.length === 1 ? "question" : "questions"} asked
+            </p>
+            {visitor.asked.length > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-1.5">
+                {[...new Set(visitor.asked)].map((q) => (
+                  <li key={q} className="tag">
+                    {q}
+                  </li>
+                ))}
+              </ul>
             )}
           </section>
         )}

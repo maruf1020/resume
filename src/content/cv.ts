@@ -5,7 +5,7 @@ export const cv = {
   /** European CVs (DE/FR/NL...) usually include a photo; set false for UK/US/IE applications. */
   showPhoto: true,
   title: "Lead Software Engineer · Full-Stack (JavaScript & TypeScript)",
-  availability: "Open to on-site roles in Bangladesh, relocation abroad, or fully remote work",
+  availability: "Prefers on-site roles - in Bangladesh or relocating abroad",
   photo: "/images/cv-photo.webp",
 
   profile:

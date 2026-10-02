@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { avatarSrc, photos } from "@/content/photos";
+import { avatarSrc, photos as allPhotos } from "@/content/photos";
 import { profile } from "@/content/profile";
 import { cn, withBase } from "@/lib/utils";
 
@@ -46,11 +46,15 @@ function Viewer({ onClose }: { onClose: () => void }) {
   const [zoom, setZoom] = useState(1);
   const closeRef = useRef<HTMLButtonElement>(null);
   const swipeX = useRef<number | null>(null);
+  // Skip any photo that fails to load, so navigation never lands on an empty slide.
+  const [broken, setBroken] = useState<string[]>([]);
+  const photos = allPhotos.filter((p) => !broken.includes(p.src));
   const count = photos.length;
-  const photo = photos[index];
+  const photo = photos[Math.min(index, count - 1)] ?? allPhotos[0];
 
   const go = useCallback(
     (step: 1 | -1) => {
+      if (count < 2) return;
       setDir(step);
       setZoom(1);
       setIndex((i) => (i + step + count) % count);
@@ -70,7 +74,7 @@ function Viewer({ onClose }: { onClose: () => void }) {
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     // Preload the others so the arrows feel instant.
-    for (const p of photos) new Image().src = withBase(p.src);
+    for (const p of allPhotos) new Image().src = withBase(p.src);
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = overflow;
@@ -126,6 +130,9 @@ function Viewer({ onClose }: { onClose: () => void }) {
           width={photo.width}
           height={photo.height}
           draggable={false}
+          onError={() => {
+            if (count > 1) setBroken((b) => [...b, photo.src]);
+          }}
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={() => setZoom((z) => (z > 1 ? 1 : 1.8))}
           onWheel={(e) => setZoom((z) => Math.min(3, Math.max(1, +(z * (e.deltaY < 0 ? 1.1 : 0.9)).toFixed(2))))}

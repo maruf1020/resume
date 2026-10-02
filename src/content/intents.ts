@@ -10,6 +10,7 @@ import {
   Languages,
   type LucideIcon,
   Lightbulb,
+  ShieldCheck,
   Mail,
   MessageSquareHeart,
   MessageSquareText,
@@ -28,6 +29,7 @@ export type Block =
   | { kind: "stats" }
   | { kind: "focus" }
   | { kind: "beliefs" }
+  | { kind: "privacy" }
   | { kind: "experience" }
   | { kind: "projects" }
   | { kind: "project"; id: string }
@@ -197,10 +199,10 @@ const base: Intent[] = [
     prompt: "Can I hire you?",
     icon: Sparkles,
     primary: true,
-    keywords: ["hire", "hiring", "job", "role", "position", "available", "availability", "relocate", "relocation", "visa", "remote", "offer", "recruit", "work with"],
+    keywords: ["hire", "hiring", "job", "role", "position", "available", "availability", "relocate", "relocation", "visa", "on-site", "onsite", "offer", "recruit", "work with"],
     answers: [
-      `Yes - I'm **open to new roles** as a tech lead, engineering lead or senior full-stack engineer. I'm happy to work **on-site in Bangladesh, relocate abroad, or work fully remote**. The quickest way to reach me is email at **${profile.email}**, or call me on **${profile.phone}**.`,
-      `I'd love to hear about it. I'm looking for **lead and senior full-stack roles** - leading a team and still shipping code across front end, back end and cloud. On-site in Bangladesh, abroad or remote all work for me. Email **${profile.email}** or call **${profile.phone}**.`,
+      `Yes - I'm **open to new roles** as a tech lead, engineering lead or senior full-stack engineer. I prefer working **on-site** - in Bangladesh, or **relocating abroad** for the right team. The quickest way to reach me is email at **${profile.email}**, or call me on **${profile.phone}**.`,
+      `I'd love to hear about it. I'm looking for **lead and senior full-stack roles** - leading a team and still shipping code across front end, back end and cloud. I prefer on-site work, in Bangladesh or relocating abroad. Email **${profile.email}** or call **${profile.phone}**.`,
     ],
     blocks: [{ kind: "hire" }],
     followUps: ["message", "download", "recommendations"],
@@ -270,6 +272,16 @@ const base: Intent[] = [
     followUps: ["about", "recommendations", "hire"],
   },
   {
+    id: "privacy",
+    label: "Privacy",
+    prompt: "How do you use my data?",
+    icon: ShieldCheck,
+    keywords: ["privacy", "data", "cookies", "cookie", "gdpr", "tracking", "analytics", "consent"],
+    answers: ["Simply and honestly. Here's exactly what this site keeps, and you can change your choice any time:"],
+    blocks: [{ kind: "privacy" }],
+    followUps: ["stack", "contact", "about"],
+  },
+  {
     id: "stack",
     label: "How this site works",
     prompt: "How did you build this site?",
@@ -279,7 +291,7 @@ const base: Intent[] = [
       "No real AI was harmed in the making of this site. It's a **Next.js app** whose answers are all written from my CV, so nothing is invented. The only things it stores are what you choose to send me - messages, feedback and thumbs up or down - in a small JSON file on my server. No trackers, no cookies for visitors.",
     ],
     blocks: [{ kind: "stack" }],
-    followUps: ["projects", "skills", "surprise"],
+    followUps: ["projects", "privacy", "surprise"],
   },
 ];
 

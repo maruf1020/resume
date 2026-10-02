@@ -47,6 +47,14 @@ After `cv:pdf`, rebuild so the new PDF is served. While `npm run dev` is running
   - Votes per answer.
   - Plus search, JSON export and sign-out.
 
+## Privacy and analytics
+
+- **First visit:** a banner asks the visitor to Accept or Reject. Their choice is kept in their browser and can be changed later in the "Privacy" answer (type *privacy* in the chat).
+- **Everyone, anonymously:** page views and questions asked go to `POST /api/events/` with no visitor id and no device details. Stored in the same JSON file, as a rolling window of 20,000 events.
+- **Accepted only:** device details are added: browser, OS, screen and window size, timezone, language, colour scheme, touch support, referrer, campaign (`utm_*`), landing page and visit count.
+- **Never stored:** IP addresses. There are no third-party trackers.
+- **Inbox:** the Analytics tab shows visits per day, top questions, sources, browsers, devices, timezones and the consent rate.
+
 ## Hosting
 
 The JSON store needs a Node server with a **persistent disk**, for example an EC2/Lightsail box or VPS (`npm start` behind nginx, kept alive with PM2) or Docker with a volume mounted at `data/`. Serverless hosts like Vercel, and static hosts like GitHub Pages, can't keep a writable file. Back up `data/feedback.json` along with the server.
