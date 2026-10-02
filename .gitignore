@@ -15,7 +15,7 @@
 
 # next.js
 /.next/
-/.next-cv/
+/.next*/
 /out/
 
 # production
@@ -40,6 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# used only by builds into a private .next-<name> folder (see next.config.ts)
+tsconfig.private.json
 
 # feedback store (contact messages, feedback, votes)
 /data/

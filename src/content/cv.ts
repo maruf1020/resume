@@ -5,17 +5,17 @@ export const cv = {
   /** European CVs (DE/FR/NL...) usually include a photo; set false for UK/US/IE applications. */
   showPhoto: true,
   title: "Lead Software Engineer · Full-Stack (JavaScript & TypeScript)",
-  availability: "Prefers on-site roles - in Bangladesh or relocating abroad",
+  availability: "Open to on-site roles - in Bangladesh or relocating abroad",
   photo: "/images/cv-photo.webp",
 
   profile:
-    "Lead Software Engineer with 5+ years of shipping production web platforms in JavaScript and TypeScript for clients in France, the UK and Germany. I lead a team of 10 and still write a large share of the code - React and Next.js, Node.js and NestJS, PostgreSQL, and AWS/Azure with CI/CD - and I'm known for owning hard problems end to end, from sync and KPI engines to a double-entry wallet and crash-safe checkout.",
+    "Lead Software Engineer with 5+ years shipping production web platforms in JavaScript and TypeScript for clients in France, the UK and Germany. I lead a team of 10 and still write a large share of the code - React and Next.js, Node.js and NestJS, PostgreSQL, and AWS/Azure with CI/CD - and I'm known for owning hard problems end to end, from sync and KPI engines to a double-entry wallet and crash-safe checkout.",
 
   highlights: [
     "Shipped 1,500+ A/B experiments for 20+ brands of a global luxury group over 3 years.",
-    "Lead 10 engineers; joint top contributor to the company HR platform (268 commits, 150+ merged PRs).",
+    "I lead 10 engineers and am a joint top contributor to the company HR platform's React front end (268 of 973 commits, 150+ merged PRs).",
     "Built a QA analytics platform almost alone: ~120k lines, 59 data models, 92-97% of commits.",
-    "Built the company's A/B tooling: ABTestLab (open source) and ABTestPilot, used company-wide for 3 years.",
+    "Built the company's A/B tooling: ABTestPilot, used company-wide for 3 years, and ABTestLab, an open-source CLI now adopted company-wide.",
   ],
 
   skills: [
@@ -100,7 +100,7 @@ export const cv = {
       bullets: [
         "Designed and built the API for a 9-vertical travel super-app as a NestJS modular monolith: 70 data models, ~236 endpoints and ~550 unit tests.",
         "Built a double-entry ledger and wallet with row-locked balance checks and an idempotent checkout saga with compensation, so multi-supplier orders recover after a crash.",
-        "Added resilient supplier integrations (circuit breakers, backoff), a 75-page React app, EC2 deploys that snapshot the database before migrating, and walton.us.",
+        "Added resilient supplier integrations (circuit breakers, backoff), a 75-page React app, EC2 deploys that snapshot the database before migrating, and the group's website, walton.us.",
       ],
       engagements: [],
     },

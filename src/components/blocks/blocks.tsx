@@ -190,6 +190,7 @@ function ProjectGrid({ onAsk }: { onAsk: Ask }) {
           key={p.id}
           type="button"
           onClick={() => onAsk(`project-${p.id}`)}
+          aria-label={`${p.name}: read the full story`}
           data-gs="row"
           className="card group flex w-full items-start gap-4 p-5 text-left transition-colors hover:border-surface-strong hover:bg-bg-soft md:p-6"
         >
@@ -250,19 +251,21 @@ function ProjectDetail({ id }: { id: string }) {
   );
 }
 
-/** "~29k lines of code" → **~29k** lines of code, joined with dots. */
+/** "~29k lines of code" → **~29k** lines of code, joined with dots. Each dot ends the item before it, so no line starts with one. */
 function Figures({ items }: { items: readonly string[] }) {
   return (
-    <p className="flex flex-wrap gap-x-2 gap-y-1 text-[15px] text-muted">
-      {items.map((n, i) => {
+    // Separators are drawn by .dot-list (CSS) so one never dangles at the end or start of a line.
+    <p className="dot-list text-[15px] text-muted">
+      {items.map((n) => {
         const [head, ...rest] = n.split(" ");
         const numeric = /\d/.test(head);
         return (
-          <span key={n} className="whitespace-nowrap">
-            {i > 0 && <span className="mr-2 text-faint">·</span>}
+          <span key={n}>
             {numeric ? (
               <>
-                <span className="font-semibold text-fg">{head}</span> {rest.join(" ")}
+                <span className="font-semibold text-fg">{head}</span>
+                {" "}
+                {rest.join(" ")}
               </>
             ) : (
               <span className="font-semibold text-fg">{n}</span>
@@ -386,7 +389,8 @@ function ContactCard() {
                   href={r.href}
                   target={r.href.startsWith("http") ? "_blank" : undefined}
                   rel="noreferrer"
-                  className="block truncate font-semibold hover:underline"
+                  // Phones: a taller hit area (py-2.5 -my-2.5) without moving the layout.
+                  className="-my-2.5 block truncate py-2.5 font-semibold hover:underline"
                 >
                   {r.value}
                 </a>
@@ -415,22 +419,23 @@ function HireMe() {
     <div className="card overflow-hidden">
       <div className="grid gap-px bg-line sm:grid-cols-2">
         {profile.hire.lookingFor.map((x) => (
-          <div key={x.k} data-gs="pop" className="bg-bg p-4 md:p-5">
+          <div key={x.k} data-gs="pop" className="bg-card p-4 md:p-5">
             <div className="eyebrow">{x.k}</div>
             <div className="mt-1.5 text-[15px] leading-snug font-semibold">{x.v}</div>
             <div className="mt-1 text-sm leading-snug text-muted">{x.note}</div>
           </div>
         ))}
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-4 py-3 md:px-5">
-        <span className="eyebrow">What I bring</span>
-        <ul className="flex flex-wrap gap-1.5">
+      <div className="border-t border-line">
+        <div className="eyebrow px-4 pt-4 md:px-5">What I bring</div>
+        <dl className="divide-y divide-line">
           {profile.hire.strengths.map((x) => (
-            <li key={x.k} className="tag" title={x.v}>
-              {x.k}
-            </li>
+            <div key={x.k} data-gs="row" className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-5 md:px-5">
+              <dt className="shrink-0 text-sm font-semibold sm:w-44">{x.k}</dt>
+              <dd className="text-[15px] leading-relaxed text-muted">{x.v}</dd>
+            </div>
           ))}
-        </ul>
+        </dl>
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-line p-4 md:p-5">
         <a href={`mailto:${profile.email}?subject=${subject}`} className="btn btn-primary">
@@ -507,7 +512,7 @@ function QuoteCard({ q }: { q: (typeof quotes)[number] }) {
         </span>
         <span className="flex items-center gap-3 text-sm font-semibold">
           {longer && (
-            <button type="button" className="text-muted underline-offset-4 hover:text-fg hover:underline" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+            <button type="button" className="inline-flex items-center text-muted underline-offset-4 hover:text-fg hover:underline pointer-coarse:min-h-11" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
               {open ? "Show less" : "Read full"}
             </button>
           )}
@@ -538,7 +543,7 @@ function Quotes() {
           href={profile.links.linkedinRecommendations}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted underline-offset-4 hover:text-fg hover:underline"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted underline-offset-4 hover:text-fg hover:underline pointer-coarse:min-h-11"
         >
           <Linkedin className="size-3.5" /> See all on LinkedIn <ArrowUpRight className="size-3.5" />
         </a>
@@ -564,7 +569,7 @@ function Farewell() {
           <div className="eyebrow">{farewell.length} notes from my team</div>
           <div className="mt-1 font-semibold">{farewellCard.title}</div>
         </div>
-        <a href={farewellCard.url} target="_blank" rel="noreferrer" className="btn btn-ghost bg-bg py-2 text-sm">
+        <a href={farewellCard.url} target="_blank" rel="noreferrer" className="btn btn-ghost bg-card py-2 text-sm pointer-coarse:min-h-11">
           See the original <ArrowUpRight className="size-4" />
         </a>
       </header>

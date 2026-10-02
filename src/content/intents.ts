@@ -84,7 +84,7 @@ const base: Intent[] = [
     keywords: ["experience", "work", "job", "career", "history", "company", "employer", "luxury", "agency", "retail", "echologyx", "nexkraft", "goodfellas", "walton", "timeline"],
     answers: [
       "Here's my career so far. Most of it is at **Echologyx**, where I grew into Lead Software Engineer and worked on long client engagements - a global luxury group in France, a European CRO agency and a UK retail group - alongside our own HR system. In 2026 I also built a travel super-app for **Goodfellas Limited**.",
-      "Two companies, many products. At **Echologyx** I lead a team of 10 and have worked for a global luxury group, a European CRO agency and a UK retail group. Before that I built Android apps at Nexkraft.",
+      "Three companies, many products. At **Echologyx** I lead a team of 10 and have worked for a global luxury group, a European CRO agency and a UK retail group. In 2026 I also built a travel super-app for **Goodfellas Limited**, and before all that I built Android apps at Nexkraft.",
     ],
     blocks: [{ kind: "experience" }],
     followUps: ["projects", "skills", "recommendations"],
@@ -288,7 +288,7 @@ const base: Intent[] = [
     icon: Hammer,
     keywords: ["site", "website", "this", "built", "how", "ai", "chatgpt", "bot", "real"],
     answers: [
-      "No real AI was harmed in the making of this site. It's a **Next.js app** whose answers are all written from my CV, so nothing is invented. The only things it stores are what you choose to send me - messages, feedback and thumbs up or down - in a small JSON file on my server. No trackers, no cookies for visitors.",
+      "No real AI was harmed in the making of this site. It's a **Next.js app** whose answers are all written from my CV, so nothing is invented. It keeps a small JSON file on my server: anonymous counts of pages and questions, what you choose to send me - messages, feedback and thumbs up or down - and basic device details only if you accept. No third-party trackers, no ads.",
     ],
     blocks: [{ kind: "stack" }],
     followUps: ["projects", "privacy", "surprise"],
@@ -298,10 +298,10 @@ const base: Intent[] = [
 const projectIntents: Intent[] = projects.map((p) => ({
   id: `project-${p.id}`,
   label: p.name,
-  prompt: `Tell me about ${p.name}.`,
+  prompt: `Tell me about the ${p.name} project.`,
   icon: Award,
   keywords: [p.name.toLowerCase(), ...p.name.toLowerCase().split(/\s+/), p.id, ...p.stack.map((s) => s.toLowerCase())],
-  answers: [`**${p.name}** - ${p.tagline}`],
+  answers: [`**${p.name}**: ${p.tagline}`],
   blocks: [{ kind: "project", id: p.id }],
   followUps: [...projects.filter((o) => o.id !== p.id).slice(0, 2).map((o) => `project-${o.id}`), "download"],
 }));
@@ -313,8 +313,8 @@ export const fallbackIntent: Intent = {
   icon: Sparkles,
   keywords: [],
   answers: [
-    "I only know about Maruf, I'm afraid - and I stick to what's on his CV. Try one of these 👇",
-    "Good question, but it's outside what I know. I can only answer from Maruf's CV. How about one of these?",
+    "That one's outside what this chat covers - I only answer from my CV. Try one of these:",
+    "Good question, but I keep this chat to my own work and CV. How about one of these?",
   ],
   blocks: [{ kind: "suggest" }],
   followUps: [],

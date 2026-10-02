@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Check, Copy, RefreshCw, ThumbsDown, ThumbsUp } from "lucide-react";
-import { AnimatedBlocks } from "@/components/blocks/animated-blocks";
+import { AnimatedBlocks, loadGsap } from "@/components/blocks/animated-blocks";
 import { BlockView } from "@/components/blocks/blocks";
 import { fallbackIntent, getIntent } from "@/content/intents";
 import type { AssistantMessage as AssistantMsg, Phase } from "@/lib/chat";
@@ -31,7 +31,7 @@ export function AssistantAvatar() {
   return (
     <span className="grid size-8 shrink-0 place-items-center rounded-[0.7rem] bg-fg text-[15px] font-bold text-bg md:size-9">
       <span aria-hidden="true">M</span>
-      <span className="sr-only">Maruf&apos;s assistant:</span>
+      <span className="sr-only">Maruf:</span>
     </span>
   );
 }
@@ -55,6 +55,19 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
   const voteKey = `${intent.id}:${msg.variant % intent.answers.length}`;
   const [vote, setVote] = useState<"up" | "down" | null>(null);
   const [voteNote, setVoteNote] = useState(false);
+  const [voteError, setVoteError] = useState(false);
+
+  // The "couldn't save" note clears itself after a few seconds.
+  useEffect(() => {
+    if (!voteError) return;
+    const t = setTimeout(() => setVoteError(false), 4000);
+    return () => clearTimeout(t);
+  }, [voteError]);
+
+  // Warm up the animation library while "thinking", so the cards can animate as soon as they appear.
+  useEffect(() => {
+    if (msg.animate && intent.blocks.length) loadGsap().catch(() => {});
+  }, [msg.animate, intent.blocks.length]);
 
   // Restore this visitor's earlier vote on this exact wording.
   useEffect(() => {
@@ -65,12 +78,15 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
   const castVote = async (value: "up" | "down") => {
     const next = vote === value ? null : value;
     setVote(next);
+    setVoteError(false);
+    // A failed thumbs-down keeps its "Tell me what was missing" note open, next to the error below.
     setVoteNote(next === "down");
     rememberVote(voteKey, next);
     const res = await postApi("/api/vote/", { intentId: intent.id, variant: msg.variant % intent.answers.length, value: next });
     if (!res.ok) {
       setVote(vote);
       rememberVote(voteKey, vote);
+      setVoteError(true);
     }
   };
 
@@ -115,7 +131,7 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
       <AssistantAvatar />
       <div className="min-w-0 flex-1 pt-0.5">
         {msg.phase === "thinking" ? (
-          <p className="shimmer text-[17px] font-medium md:text-lg">Reading Maruf&apos;s CV…</p>
+          <p className="shimmer text-[17px] font-medium md:text-lg">Reading my CV...</p>
         ) : (
           <p className="text-[18px] leading-[1.65] text-fg/90 md:text-[19px]">
             <RichText text={shown} />
@@ -163,6 +179,9 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
               )}
               {vote === "up" && <span className="ml-1 text-sm text-faint">Thanks!</span>}
             </motion.div>
+            <p role="status" aria-live="polite" className={cn("-ml-11 text-sm text-muted md:ml-0", voteError ? "mt-1" : "sr-only")}>
+              {voteError ? "Couldn't save your vote - try again." : ""}
+            </p>
             {voteNote && (
               <p className="mt-1 -ml-11 text-sm text-muted md:ml-0">
                 Sorry it missed.{" "}

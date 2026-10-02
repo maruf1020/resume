@@ -1,34 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
 import { BarChart3, Eye, MessageCircleQuestion, ShieldCheck, Users } from "lucide-react";
-import type { Db } from "@/server/store";
+import type { AnalyticsSummary } from "@/server/admin-view";
 import { cn } from "@/lib/utils";
-
-const browserOf = (ua = "") =>
-  /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Other";
-const osOf = (ua = "") =>
-  /iPhone|iPad/.test(ua) ? "iOS" : /Android/.test(ua) ? "Android" : /Windows/.test(ua) ? "Windows" : /Mac OS X/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "Other";
-const sourceOf = (ref?: string, utm?: string) => {
-  if (utm) return utm.split("&")[0].replace("source=", "").replace("ref=", "") || "Campaign";
-  if (!ref) return "Direct";
-  try {
-    return new URL(ref).hostname.replace(/^www\./, "");
-  } catch {
-    return "Other";
-  }
-};
-
-function top(values: string[], n = 5) {
-  const m = new Map<string, number>();
-  for (const v of values) m.set(v, (m.get(v) ?? 0) + 1);
-  return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
-}
 
 function Bars({ title, rows, total, empty }: { title: string; rows: [string, number][]; total: number; empty: string }) {
   return (
     <section className="card p-4 md:p-5">
-      <h3 className="text-sm font-semibold">{title}</h3>
+      <h2 className="text-sm font-semibold">{title}</h2>
       {rows.length === 0 ? (
         <p className="mt-3 text-sm text-muted">{empty}</p>
       ) : (
@@ -52,48 +31,14 @@ function Bars({ title, rows, total, empty }: { title: string; rows: [string, num
   );
 }
 
-export function Analytics({ db, labels }: { db: Db; labels: Record<string, string> }) {
-  const data = useMemo(() => {
-    const ev = db.events ?? [];
-    const views = ev.filter((e) => e.type === "pageview");
-    const asks = ev.filter((e) => e.type === "ask");
-    const consented = views.filter((e) => e.consent && e.visitor);
-    const unique = new Set(ev.filter((e) => e.visitor).map((e) => e.visitor!.visitorId)).size;
-
-    const days: { key: string; label: string; n: number }[] = [];
-    const today = new Date();
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - i));
-      const key = d.toISOString().slice(0, 10);
-      days.push({ key, label: d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }), n: 0 });
-    }
-    const byDay = new Map(days.map((d) => [d.key, d]));
-    for (const v of views) {
-      const day = byDay.get(v.at.slice(0, 10));
-      if (day) day.n++;
-    }
-
-    return {
-      views: views.length,
-      asks: asks.length,
-      unique,
-      consentRate: views.length ? Math.round((consented.length / views.length) * 100) : null,
-      days,
-      questions: top(asks.map((a) => labels[a.intentId ?? ""] ?? a.intentId ?? "Unknown"), 8),
-      browsers: top(consented.map((e) => browserOf(e.visitor!.userAgent))),
-      os: top(consented.map((e) => `${osOf(e.visitor!.userAgent)}${e.visitor!.touch ? " (touch)" : ""}`)),
-      timezones: top(consented.map((e) => e.visitor!.timezone ?? "Unknown")),
-      sources: top(consented.map((e) => sourceOf(e.visitor!.referrer, e.visitor!.utm))),
-      consentedCount: consented.length,
-    };
-  }, [db.events, labels]);
-
+/** Renders totals added up on the server (src/server/admin-view.ts); no raw events reach the browser. */
+export function Analytics({ data }: { data: AnalyticsSummary }) {
   const maxDay = Math.max(1, ...data.days.map((d) => d.n));
   const kpis = [
-    { icon: Eye, label: "Visits", value: data.views, tone: "text-sky-600 dark:text-sky-400 bg-sky-500/12" },
-    { icon: MessageCircleQuestion, label: "Questions asked", value: data.asks, tone: "text-accent bg-accent/12" },
-    { icon: Users, label: "Known visitors", value: data.unique, tone: "text-violet-600 dark:text-violet-400 bg-violet-500/12" },
-    { icon: ShieldCheck, label: "Accepted analytics", value: data.consentRate === null ? "-" : `${data.consentRate}%`, tone: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/12" },
+    { icon: Eye, label: "Visits", value: data.views, tone: "text-sky-700 dark:text-sky-400 bg-sky-500/12" },
+    { icon: MessageCircleQuestion, label: "Questions asked", value: data.asks, tone: "text-accent bg-accent-soft" },
+    { icon: Users, label: "Known visitors", value: data.unique, tone: "text-violet-700 dark:text-violet-400 bg-violet-500/12" },
+    { icon: ShieldCheck, label: "Accepted analytics", value: data.consentRate === null ? "-" : `${data.consentRate}%`, tone: "text-emerald-700 dark:text-emerald-400 bg-emerald-500/12" },
   ];
 
   return (
@@ -106,7 +51,7 @@ export function Analytics({ db, labels }: { db: Db; labels: Record<string, strin
             </span>
             <span>
               <span className="display block text-2xl tabular-nums">{k.value}</span>
-              <span className="text-xs text-muted">{k.label}</span>
+              <span className="block text-xs leading-snug text-muted">{k.label}</span>
             </span>
           </li>
         ))}
@@ -114,9 +59,9 @@ export function Analytics({ db, labels }: { db: Db; labels: Record<string, strin
 
       <section className="card p-4 md:p-5">
         <div className="flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
             <BarChart3 className="size-4 text-faint" /> Visits, last 14 days
-          </h3>
+          </h2>
           <span className="text-xs text-faint">UTC</span>
         </div>
         <div className="mt-4 flex h-36 items-end gap-1.5" role="img" aria-label={`Visits per day: ${data.days.map((d) => `${d.label} ${d.n}`).join(", ")}`}>
@@ -141,7 +86,7 @@ export function Analytics({ db, labels }: { db: Db; labels: Record<string, strin
         <Bars title="Timezones" rows={data.timezones} total={Math.max(1, data.consentedCount)} empty="Shown once visitors accept analytics." />
       </div>
       <p className="text-xs text-faint">
-        Visits and questions are counted for everyone, anonymously. Device details come only from visitors who accepted analytics.
+        Visits and questions are counted for everyone, anonymously. Known visitors and device details come only from visitors who accepted analytics.
       </p>
     </div>
   );

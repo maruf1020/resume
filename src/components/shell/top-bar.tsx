@@ -11,9 +11,11 @@ type Props = {
   onOpenDrawer: () => void;
   onNew: () => void;
   onAsk: (intentId: string) => void;
+  /** The "Open menu" button, so focus can return to it when the drawer closes. */
+  menuRef?: React.Ref<HTMLButtonElement>;
 };
 
-export function TopBar({ onOpenDrawer, onNew, onAsk }: Props) {
+export function TopBar({ onOpenDrawer, onNew, onAsk, menuRef }: Props) {
   const [copied, setCopied] = useState(false);
 
   const share = async () => {
@@ -28,7 +30,7 @@ export function TopBar({ onOpenDrawer, onNew, onAsk }: Props) {
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-1 px-2 md:px-3">
-      <button type="button" className="icon-btn lg:hidden" onClick={onOpenDrawer} aria-label="Open menu">
+      <button ref={menuRef} type="button" className="icon-btn lg:hidden" onClick={onOpenDrawer} aria-label="Open menu" aria-haspopup="dialog">
         <Menu className="size-5" />
       </button>
 

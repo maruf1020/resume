@@ -25,7 +25,7 @@ export const profile = {
       { k: "Back end", v: "Node.js, NestJS, Express - REST APIs, sync engines, queues, WebSockets" },
       { k: "Cloud & DevOps", v: "AWS (Lambda, EC2, ECS, S3, SES, CloudWatch, Amplify), Azure, Docker, CI/CD on GitHub Actions" },
       { k: "Data", v: "PostgreSQL, MySQL, DynamoDB, Firestore - Prisma, TypeORM, Drizzle" },
-      { k: "Languages", v: "JavaScript, TypeScript, Java, Python, SQL" },
+      { k: "Programming languages", v: "JavaScript, TypeScript, Java, Python, SQL" },
       { k: "Leadership", v: "Leading a team of 10: architecture, code review, estimates, mentoring and client calls" },
     ],
   },
@@ -50,7 +50,7 @@ export const profile = {
     { value: "500k+", label: "lines of JavaScript & TypeScript written" },
     { value: "10", label: "engineers in the team I lead" },
     { value: "20+", label: "luxury e-commerce brands I've built for" },
-    { value: "3 yrs", label: "with a global luxury group in France" },
+    { value: "3 yrs", label: "for a global luxury group in France" },
   ],
   /** What I do, shown under "About me". */
   focus: [

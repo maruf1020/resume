@@ -11,7 +11,9 @@ import { SuggestionChips } from "@/components/chat/suggestion-chips";
 import { TypedIntro } from "@/components/hero/typed-intro";
 import { Sidebar } from "@/components/shell/sidebar";
 import { TopBar } from "@/components/shell/top-bar";
-import { getIntent, type Intent } from "@/content/intents";
+import { fallbackIntent, getIntent, type Intent } from "@/content/intents";
+import { profile } from "@/content/profile";
+import { focusInOtherModal, useFocusTrap } from "@/lib/use-focus-trap";
 
 // The landing screen shows a short, curated set; "More" opens the full list.
 const LANDING = ["about", "experience", "projects", "skills", "hire"]
@@ -30,8 +32,33 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
   const [showDown, setShowDown] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const composer = useRef<ComposerHandle>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLButtonElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
+
+  // Publish the bottom dock's height so overlays (the privacy banner) can sit just above the composer.
+  useEffect(() => {
+    const dock = dockRef.current;
+    if (!dock) return;
+    const root = document.documentElement;
+    const ro = new ResizeObserver(() => root.style.setProperty("--dock-h", `${dock.offsetHeight}px`));
+    ro.observe(dock);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty("--dock-h");
+    };
+  }, []);
 
   const toggleSidebar = (open: boolean) => setSidebarOpen(open);
+
+  // Publish the desktop sidebar's width so the short-window privacy strip starts right of it, not over the topics.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--side-w", sidebarOpen ? "17.5rem" : "4.25rem");
+    return () => {
+      root.style.removeProperty("--side-w");
+    };
+  }, [sidebarOpen]);
 
   const ask = useCallback(
     (intentId: string, text?: string) => {
@@ -77,6 +104,8 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
+      // Never pull focus out of an open dialog (photo viewer, drawer) or out of an editable field.
+      if (document.querySelector('[aria-modal="true"]') || t.closest?.('[role="dialog"]') || t.isContentEditable) return;
       const palette = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k";
       if (palette || (e.key === "/" && !["INPUT", "TEXTAREA"].includes(t.tagName))) {
         e.preventDefault();
@@ -91,14 +120,64 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
     document.body.style.overflow = drawer ? "hidden" : "";
   }, [drawer]);
 
+  // Mobile drawer is a modal dialog: focus moves in, Tab stays inside, Esc closes, focus returns to "Open menu".
+  useFocusTrap(drawerRef, drawer);
+  useEffect(() => {
+    if (!drawer) return;
+    const menu = menuRef.current;
+    const raf = requestAnimationFrame(() => drawerRef.current?.querySelector<HTMLElement>("[data-drawer-close]")?.focus());
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || (drawerRef.current && focusInOtherModal(drawerRef.current))) return;
+      e.preventDefault();
+      setDrawer(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("keydown", onKey);
+      // Unless something else already took focus (e.g. the composer after "New chat").
+      requestAnimationFrame(() => {
+        const a = document.activeElement;
+        if (!a || a === document.body || !a.isConnected || a.closest('[aria-label="Menu"][role="dialog"]')) menu?.focus();
+      });
+    };
+  }, [drawer]);
+
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
   const activeIntent = lastAssistant?.role === "assistant" ? lastAssistant.intentId : undefined;
 
+  // One short screen-reader update per answer, instead of announcing every streamed word.
+  const status =
+    lastAssistant?.role === "assistant" && lastAssistant.animate
+      ? lastAssistant.phase === "done"
+        ? `Answer ready: ${(getIntent(lastAssistant.intentId) ?? fallbackIntent).label}`
+        : "Reading my CV"
+      : "";
+
+  // Pair each question with its answer so every answer is a section headed by its question.
+  const turns: { question?: Extract<(typeof messages)[number], { role: "user" }>; answer?: Extract<(typeof messages)[number], { role: "assistant" }> }[] = [];
+  for (const m of messages) {
+    if (m.role === "user") turns.push({ question: m });
+    else if (turns.length && !turns[turns.length - 1].answer) turns[turns.length - 1].answer = m;
+    else turns.push({ answer: m });
+  }
 
   return (
     <MotionConfig reducedMotion="user">
     <PhotoViewerProvider>
-    <ConsentBanner onLearnMore={() => chatAsk("privacy")} />
+    {/* First Tab stop: jump past the sidebar and topics straight to the question box. */}
+    <a
+      href="#question-box"
+      onClick={(e) => {
+        e.preventDefault();
+        composer.current?.focus();
+      }}
+      className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-3 focus-visible:left-3 focus-visible:z-[60] focus-visible:rounded-xl focus-visible:bg-card focus-visible:px-4 focus-visible:py-2.5 focus-visible:text-sm focus-visible:font-semibold focus-visible:shadow-lg"
+    >
+      Skip to question box
+    </a>
+    {/* The Privacy answer carries the same Accept/Reject, so the banner steps aside while it is shown. */}
+    <ConsentBanner onLearnMore={() => chatAsk("privacy")} hidden={activeIntent === "privacy" || drawer} />
     <div className="flex h-dvh overflow-hidden">
       {/* Desktop sidebar: full panel or a slim icon rail */}
       <motion.aside
@@ -120,13 +199,18 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
       {/* Mobile drawer */}
       <AnimatePresence>
         {drawer && (
-          <motion.div className="fixed inset-0 z-40 lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <button
-              type="button"
-              aria-label="Close menu"
-              className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
-              onClick={() => setDrawer(false)}
-            />
+          <motion.div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+            className="fixed inset-0 z-40 lg:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* Backdrop: tap to close. Keyboard users close with Esc or the X button. */}
+            <div aria-hidden="true" className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => setDrawer(false)} />
             <motion.aside
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
@@ -140,8 +224,9 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
         )}
       </AnimatePresence>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col" inert={drawer}>
         <TopBar
+          menuRef={menuRef}
           onOpenDrawer={() => setDrawer(true)}
           onNew={reset}
           onAsk={ask}
@@ -150,36 +235,52 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
         <LayoutGroup>
           <main ref={scrollRef} onScroll={onScroll} className="relative min-h-0 flex-1 overflow-y-auto">
             {empty ? (
-              <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col justify-center px-5 py-8 md:px-10">
+              <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col justify-center px-5 pt-8 pb-[calc(2rem+var(--consent-h,0px))] md:px-10">
                 <TypedIntro />
               </div>
             ) : (
-              <div aria-live="polite" className="mx-auto w-full max-w-3xl space-y-8 px-4 pt-6 pb-10 md:px-6 md:pt-10">
-                {messages.map((m, i) => {
-                  const isLast = i === messages.length - 1;
-                  return m.role === "user" ? (
-                    <div key={m.id} data-msg={m.id}>
-                      <UserMessage text={m.text} />
-                    </div>
-                  ) : (
-                    // The newest answer reserves a screen of room so its question can scroll to the top.
-                    <div key={`${m.id}-${m.variant}`} className={isLast && messages.length > 2 ? "min-h-[calc(100dvh-16rem)]" : undefined}>
-                      <AssistantMessage
-                        msg={m}
-                        isLast={isLast}
-                        onPhase={chat.setPhase}
-                        onAsk={ask}
-                        onRegenerate={chat.regenerate}
-                      />
-                    </div>
+              <div role="log" aria-live="off" aria-label="Conversation" className="mx-auto w-full max-w-3xl space-y-8 px-4 pt-6 pb-[calc(2.5rem+var(--consent-h,0px))] md:px-6 md:pt-10">
+                <h1 className="sr-only">
+                  {profile.name} - {profile.role}
+                </h1>
+                {turns.map(({ question, answer }, i) => {
+                  const isLast = i === turns.length - 1;
+                  return (
+                    <section key={question?.id ?? answer?.id} aria-label={question ? undefined : "Answer"} aria-labelledby={question ? `q-${question.id}` : undefined} className="space-y-8">
+                      {question && (
+                        <>
+                          <h2 id={`q-${question.id}`} className="sr-only">
+                            {question.text}
+                          </h2>
+                          <div data-msg={question.id} aria-hidden="true">
+                            <UserMessage text={question.text} />
+                          </div>
+                        </>
+                      )}
+                      {answer && (
+                        // The newest answer reserves a screen of room so its question can scroll to the top.
+                        <div key={`${answer.id}-${answer.variant}`} className={isLast && messages.length > 2 ? "min-h-[calc(100dvh-16rem)]" : undefined}>
+                          <AssistantMessage
+                            msg={answer}
+                            isLast={isLast}
+                            onPhase={chat.setPhase}
+                            onAsk={ask}
+                            onRegenerate={chat.regenerate}
+                          />
+                        </div>
+                      )}
+                    </section>
                   );
                 })}
               </div>
             )}
           </main>
+          <p role="status" aria-live="polite" className="sr-only">
+            {status}
+          </p>
 
           {/* Bottom dock: always pinned, like other AI chat apps. */}
-          <div className="relative shrink-0 px-4 pt-2 pb-safe md:px-6">
+          <div ref={dockRef} id="question-box" className="relative shrink-0 px-4 pt-2 pb-safe md:px-6">
               <AnimatePresence>
                 {showDown && (
                   <motion.button
@@ -191,7 +292,7 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
                       scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
                     }}
                     aria-label="Scroll to latest answer"
-                    className="absolute -top-12 left-1/2 grid size-10 -translate-x-1/2 place-items-center rounded-full border border-line bg-bg shadow-md"
+                    className="absolute -top-12 left-1/2 grid size-10 -translate-x-1/2 place-items-center rounded-full border border-line bg-card shadow-md pointer-coarse:size-11"
                   >
                     <ArrowDown className="size-4" />
                   </motion.button>
@@ -210,7 +311,7 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
                       everything you can ask.
                     </>
                   ) : (
-                    <>Answers come straight from Maruf&apos;s CV - nothing is generated.</>
+                    <>Answers come straight from my CV - nothing is generated.</>
                   )}
                 </p>
               </div>

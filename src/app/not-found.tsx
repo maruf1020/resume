@@ -1,4 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+// The root title template adds " - Md Maruf Billah". Next already adds robots noindex to 404s.
+export const metadata: Metadata = { title: "Page not found" };
 
 export default function NotFound() {
   return (

@@ -26,6 +26,8 @@ export function setConsent(value: "granted" | "denied") {
     /* storage blocked: the choice lasts for this page only */
   }
   memory = value;
+  if (value === "granted") saveSession();
+  else forgetSession();
   window.dispatchEvent(new Event(EVENT));
 }
 
@@ -40,6 +42,9 @@ const subscribe = (cb: () => void) => {
   };
 };
 
+/** The visitor's current choice, outside React (null until they choose). */
+export const getConsent = (): Consent => snapshot();
+
 /** "pending" during SSR and the first client render, so the banner never flashes. */
 export function useConsent(): Consent | "pending" {
   return useSyncExternalStore(subscribe, snapshot, () => "pending" as const);
@@ -49,11 +54,14 @@ export function useConsent(): Consent | "pending" {
 const SESSION_KEY = "portfolio:session";
 const VISITS_KEY = "portfolio:visits";
 
+/** This page load's landing page and campaign, kept in memory until the visitor accepts. */
+let pending: { landing: string; utm?: string } | undefined;
+
 /** Device details, sent only with consent. */
 function details() {
   const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
-  let landing: string | undefined;
-  let utm: string | undefined;
+  let landing = pending?.landing;
+  let utm = pending?.utm;
   let visits: number | undefined;
   try {
     const session = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null") as { landing: string; utm?: string } | null;
@@ -78,20 +86,46 @@ function details() {
   };
 }
 
-/** Remembers the landing page and campaign (utm_*) for this browser session, and counts sessions. */
-export function startSession() {
+/** Writes the landing page and campaign for this browser session and counts the session, once. */
+function saveSession() {
+  if (!pending) return;
   try {
     if (sessionStorage.getItem(SESSION_KEY)) return;
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(pending));
+    localStorage.setItem(VISITS_KEY, String(Number(localStorage.getItem(VISITS_KEY) || "0") + 1));
+  } catch {
+    /* storage blocked: the details still go along from memory */
+  }
+}
+
+/** Removes the stored landing page, campaign and visit count (used when the visitor rejects). */
+function forgetSession() {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(VISITS_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Notes the landing page and campaign (utm_*) of this page load. They are only kept in memory until
+ * the visitor accepts the privacy banner; then (or straight away for a visitor who already accepted)
+ * they are saved for the browser session and the visit counter goes up.
+ */
+export function startSession() {
+  if (pending) return;
+  try {
     const url = new URL(window.location.href);
     const utm = ["utm_source", "utm_medium", "utm_campaign", "ref"]
       .map((k) => (url.searchParams.get(k) ? `${k.replace("utm_", "")}=${url.searchParams.get(k)}` : ""))
       .filter(Boolean)
       .join("&");
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ landing: url.pathname, utm: utm || undefined }));
-    localStorage.setItem(VISITS_KEY, String(Number(localStorage.getItem(VISITS_KEY) || "0") + 1));
+    pending = { landing: url.pathname, utm: utm || undefined };
   } catch {
-    /* ignore */
+    return;
   }
+  if (snapshot() === "granted") saveSession();
 }
 
 /** Anonymous by default; device details only when the visitor accepted. */

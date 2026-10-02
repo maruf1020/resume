@@ -41,3 +41,28 @@ export function matchIntents(query: string, limit = 6): Intent[] {
     .slice(0, limit)
     .map((r) => r.intent);
 }
+
+const squash = (s: string) => normalize(s).replace(/[^a-z0-9]+/g, "");
+let topicWords: string[] | undefined;
+
+/** True when the text contains a topic keyword or label (5+ letters), e.g. "myexperience". */
+export function mentionsTopic(query: string): boolean {
+  topicWords ??= [...new Set(intents.flatMap((i) => [i.label, ...i.keywords]).map(squash))].filter((w) => w.length >= 5);
+  const q = squash(query);
+  return !!q && topicWords.some((w) => q.includes(w));
+}
+
+/**
+ * The shape every admin code must have (scripts/hash-admin-code.mjs enforces the same rule): one
+ * "word" of 8 to 128 characters with no spaces, containing a letter, a digit, and an uppercase
+ * letter or a symbol. Ordinary words ("kubernetes", "Leadership", "full-stack") never have it.
+ * Only the shape is known here, never the code itself.
+ */
+export const hasCodeShape = (q: string) =>
+  q.length >= 8 &&
+  q.length <= 128 &&
+  !/\s/.test(q) &&
+  !q.startsWith("/") &&
+  /[a-z]/i.test(q) &&
+  /\d/.test(q) &&
+  /[A-Z]|[^a-zA-Z0-9]/.test(q);

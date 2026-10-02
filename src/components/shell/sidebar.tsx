@@ -29,6 +29,8 @@ const RailTip = ({ children }: { children: React.ReactNode }) => (
 
 export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collapsed = false }: Props) {
   const rail = variant === "desktop" && collapsed;
+  // Drawer rows are finger-sized (44px+); the desktop list stays compact.
+  const rowPad = variant === "drawer" ? "py-2.5" : "py-2";
 
   const item = (id: string, label: string, Icon?: React.ComponentType<{ className?: string }>) => {
     const active = activeIntent === id;
@@ -40,7 +42,8 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
           aria-current={active ? "true" : undefined}
           aria-label={rail ? label : undefined}
           className={cn(
-            "group relative flex w-full items-center gap-3 rounded-xl py-2 text-left text-[15px] font-medium text-muted transition-colors hover:text-fg",
+            "side-row group relative flex w-full items-center gap-3 rounded-xl text-left text-[15px] font-medium text-muted transition-colors hover:text-fg",
+            rowPad,
             rail ? "justify-center px-0" : "px-3",
             active && "text-fg",
           )}
@@ -68,7 +71,7 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
         <div className="flex items-center gap-2.5 px-1.5 py-1">
           <Avatar size={34} />
           {!rail && (
-            <button type="button" onClick={onNew} className="rounded-lg px-1 text-[17px] font-semibold tracking-tight">
+            <button type="button" onClick={onNew} className="rounded-lg px-1 text-[17px] font-semibold tracking-tight pointer-coarse:min-h-11 pointer-coarse:min-w-11">
               {profile.shortName}
             </button>
           )}
@@ -76,6 +79,7 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
         <button
           type="button"
           onClick={onToggle}
+          data-drawer-close={variant === "drawer" ? "" : undefined}
           className="group relative icon-btn"
           aria-label={variant === "drawer" ? "Close menu" : rail ? "Expand sidebar" : "Collapse sidebar"}
         >
@@ -90,7 +94,8 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
           onClick={onNew}
           aria-label={rail ? "New chat" : undefined}
           className={cn(
-            "group relative flex w-full items-center gap-3 rounded-xl py-2 text-[15px] font-semibold transition-colors hover:bg-surface",
+            "side-row group relative flex w-full items-center gap-3 rounded-xl text-[15px] font-semibold transition-colors hover:bg-surface",
+            rowPad,
             rail ? "justify-center" : "px-3",
           )}
         >
@@ -99,7 +104,8 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
         </button>
       </div>
 
-      <div className={cn("mt-4 flex-1 pb-4", rail ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-3")}>
+      {/* Touch rail rows are 44px, so on short tablets the rail scrolls instead of pushing the footer off screen. */}
+      <div className={cn("mt-4 flex-1 pb-4", rail ? "no-scrollbar min-h-0 overflow-visible px-2 pointer-coarse:overflow-y-auto" : "no-scrollbar overflow-y-auto px-3")}>
         {!rail && <div className="eyebrow px-3 pb-2">Ask about</div>}
         <ul className="space-y-1">{primaryIntents.map((i) => item(i.id, i.label, i.icon))}</ul>
         {!rail && (
@@ -115,7 +121,8 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
         <Avatar size={32} />
         {!rail && (
           <>
-            <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{profile.name}</span>
+            {/* The narrow phone drawer shows the short name (as in its header), so it is never cut off. */}
+            <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{variant === "drawer" ? profile.shortName : profile.name}</span>
             <a href={profile.links.github} target="_blank" rel="noreferrer" className="icon-btn size-8" aria-label="GitHub">
               <Github className="size-4" />
             </a>

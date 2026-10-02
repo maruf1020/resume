@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { introPools, introSchedule, longestIntro, staticIntro } from "@/content/intro";
 
 type Seg = { text: string; typing: boolean };
@@ -42,7 +42,8 @@ function fitFontSize(el: HTMLElement, text: string): number {
   });
   probe.textContent = `${text} ▍`;
   document.body.appendChild(probe);
-  let lo = 22;
+  // 16px floor: at 320-360px wide the longest combination still fits the 4-line budget.
+  let lo = 16;
   let hi = 84;
   while (hi - lo > 0.5) {
     const mid = (lo + hi) / 2;
@@ -61,7 +62,8 @@ export function TypedIntro() {
   const ref = useRef<HTMLHeadingElement>(null);
 
   // Size the heading once per width so the longest sentence still fits in 4 lines: no jumping while typing.
-  useEffect(() => {
+  // Layout effect: measured before the first client paint, so the size never visibly changes after hydration.
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const fit = () => el.style.setProperty("--intro-size", `${fitFontSize(el, longestIntro)}px`);

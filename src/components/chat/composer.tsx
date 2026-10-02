@@ -3,7 +3,7 @@
 import { forwardRef, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUp, CornerDownLeft, Square } from "lucide-react";
-import { matchIntents } from "@/lib/match-intent";
+import { hasCodeShape, matchIntents, mentionsTopic } from "@/lib/match-intent";
 import { cn, withBase } from "@/lib/utils";
 
 type Props = {
@@ -13,19 +13,28 @@ type Props = {
   className?: string;
 };
 
-/** A single "word" of 8+ characters might be the private access code; only those are checked with the server. */
-const mightBeCode = (q: string) => q.length >= 8 && !/\s/.test(q) && !q.startsWith("/");
+/**
+ * Only text with the access code's shape (one 8+ character word mixing letters, digits and an
+ * uppercase letter or symbol) that isn't a question we can answer is checked with the server.
+ * Ordinary words ("experience", "kubernetes"...) never are, so questions don't use up sign-in attempts.
+ */
+const mightBeCode = (q: string, matchCount: number) => hasCodeShape(q) && matchCount === 0 && !mentionsTopic(q);
 
-async function tryAccessCode(code: string): Promise<boolean> {
+type CodeResult = "ok" | "wrong" | "blocked";
+
+async function tryAccessCode(code: string): Promise<CodeResult> {
   try {
     const res = await fetch(withBase("/api/admin/session/"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ code }),
     });
-    return res.ok;
+    if (res.ok) return "ok";
+    // Only a plain "wrong code" (401, also sent when over the limit, after a delay) falls through to a
+    // normal answer. Server errors must never echo what was typed, because it may have been the real code.
+    return res.status === 401 ? "wrong" : "blocked";
   } catch {
-    return false;
+    return "blocked";
   }
 }
 
@@ -53,6 +62,7 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ on
     [],
   );
   const [checking, setChecking] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const matches = useMemo(() => (value.trim() ? matchIntents(value) : []), [value]);
   const showList = open && value.trim().length > 0;
@@ -68,15 +78,17 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ on
     if (generating) return onStop();
     const q = value.trim();
     if (!q || checking) return;
-    if (mightBeCode(q)) {
+    setNotice(null);
+    if (mightBeCode(q, matches.length)) {
       setChecking(true);
-      const ok = await tryAccessCode(q);
+      const result = await tryAccessCode(q);
       setChecking(false);
-      if (ok) {
-        // Never echo the code into the chat.
+      if (result !== "wrong") {
+        // Never echo a possible code into the chat.
         setValue("");
         setOpen(false);
-        window.location.assign(withBase("/admin/"));
+        if (result === "ok") window.location.assign(withBase("/admin/"));
+        else setNotice("That couldn't be checked right now. Please try again later.");
         return;
       }
     }
@@ -109,7 +121,7 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ on
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="absolute inset-x-0 bottom-full z-20 mb-2 overflow-hidden rounded-3xl border border-line bg-bg shadow-[0_18px_50px_-12px_rgb(0_0_0/0.25)]"
+            className="absolute inset-x-0 bottom-full z-20 mb-2 overflow-hidden rounded-3xl border border-line bg-card shadow-[0_18px_50px_-12px_rgb(0_0_0/0.25)]"
           >
             {matches.length ? (
               <ul id={listId} role="listbox" aria-label="Questions you can ask" className="max-h-[50vh] overflow-y-auto p-1.5">
@@ -148,12 +160,17 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ on
         )}
       </AnimatePresence>
 
-      <div className="flex items-center gap-2 rounded-[1.75rem] border border-line bg-bg p-2 pl-5 shadow-[0_6px_30px_-12px_rgb(0_0_0/0.18)] transition-[border-color,box-shadow] focus-within:border-faint/60 focus-within:shadow-[0_8px_34px_-12px_rgb(0_0_0/0.28)]">
+      <p role="status" aria-live="polite" className={cn("px-5 pb-2 text-sm text-muted", !notice && "sr-only")}>
+        {notice}
+      </p>
+
+      <div className="flex items-center gap-2 rounded-[1.75rem] border border-line-strong bg-card p-2 pl-5 shadow-[0_6px_30px_-12px_rgb(0_0_0/0.18)] transition-[border-color,box-shadow] focus-within:border-accent focus-within:shadow-[0_0_0_1px_var(--accent),0_8px_34px_-12px_rgb(0_0_0/0.28)]">
         <input
           ref={inputRef}
           value={value}
           onChange={(e) => {
             setValue(e.target.value.slice(0, 80));
+            setNotice(null);
             setOpen(true);
             setActive(0);
           }}
@@ -164,7 +181,7 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ on
           aria-label="Ask a question about Maruf"
           role="combobox"
           aria-expanded={showList}
-          aria-controls={listId}
+          aria-controls={showList && matches.length ? listId : undefined}
           aria-autocomplete="list"
           aria-activedescendant={showList && matches.length ? `${listId}-${active}` : undefined}
           enterKeyHint="send"

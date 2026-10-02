@@ -35,11 +35,11 @@ export const projects: Project[] = [
     name: "Travel Super-App",
     year: "2026",
     kind: "Work",
-    tagline: "Nine travel verticals on one platform - with a double-entry wallet and a crash-safe checkout.",
+    tagline: "Nine travel verticals on one platform, with a double-entry wallet and a crash-safe checkout.",
     problem:
       "A luggage-storage marketplace needed to grow into hotels, flights, parking, transfers, eSIM and more - without orders going inconsistent when one of several suppliers fails mid-checkout.",
     built: [
-      "NestJS modular monolith: 70 data models, ~236 endpoints and role-scoped permissions for travellers, merchants and super admins.",
+      "NestJS modular monolith: 70 data models, ~236 endpoints and role-scoped permissions for travellers, partners and admins.",
       "Double-entry ledger and wallet with row-locked balance checks inside one transaction, so money can't be double-spent.",
       "Persisted, idempotent checkout saga (reserve → authorize → confirm → capture) with compensation and crash recovery; outbox and idempotency keys.",
       "Supplier adapter framework with per-supplier timeouts, retry with backoff and circuit breakers; live Duffel flights adapter.",
@@ -53,9 +53,9 @@ export const projects: Project[] = [
   {
     id: "qa-analytics",
     name: "QA Analytics Platform",
-    year: "2026",
+    year: "2025 - 2026",
     kind: "Work",
-    tagline: "Jira-synced bug tracking with 14 team KPIs, leaderboards and target boards - built almost single-handedly.",
+    tagline: "Jira-synced bug tracking with 14 team KPIs, leaderboards and target boards, built almost single-handedly.",
     problem:
       "An agency's QA and dev teams tracked bugs in Jira and spreadsheets, with no fair, shared way to measure quality and delivery per person.",
     built: [
@@ -75,7 +75,7 @@ export const projects: Project[] = [
     name: "ABTestLab",
     year: "2025",
     kind: "Open source",
-    tagline: "CLI to build and live-preview A/B tests locally - adopted company-wide.",
+    tagline: "CLI to build and live-preview A/B tests locally, adopted company-wide.",
     problem:
       "A/B test developers were writing variations straight into vendor dashboards, with no local tooling, bundling or live reload.",
     built: [
@@ -94,7 +94,7 @@ export const projects: Project[] = [
     name: "ABTestPilot",
     year: "3 years in use",
     kind: "Work",
-    tagline: "The company's internal A/B testing CLI - used across the company for 3 years.",
+    tagline: "The company's internal A/B testing CLI, used across the company for 3 years.",
     problem: "A CRO team shipping experiments every week needed one shared, reliable way to build, preview and ship A/B tests.",
     built: [
       "Internal command-line tool the developers use to build, preview and ship A/B tests.",
@@ -108,7 +108,7 @@ export const projects: Project[] = [
     name: "eHRMS",
     year: "2023 - now",
     kind: "Work",
-    tagline: "The company's full employee-management system - I'm the joint top contributor to its front end and built its KPI module.",
+    tagline: "The company's full employee-management system. I'm the joint top contributor to its front end and built its KPI module.",
     problem: "The company ran HR, leave, timesheets and KPIs across spreadsheets and disconnected tools.",
     built: [
       "Covers the whole employee lifecycle: leave, holidays, employee profiles, calendars, shifts, KPIs, time tracking and more.",
@@ -141,7 +141,7 @@ export const projects: Project[] = [
     name: "Tour Console",
     year: "2025 - 2026",
     kind: "Work",
-    tagline: "The company's annual-tour app - I'm its only developer.",
+    tagline: "The company's annual-tour app. I'm its only developer.",
     problem: "Running a company-wide annual tour meant juggling rooms, schedules, tournaments and announcements across chats and spreadsheets.",
     built: [
       "Multi-tenant Microsoft login and an admin console for events, programmes and seasons, with season migration.",

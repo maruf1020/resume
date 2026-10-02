@@ -1,13 +1,15 @@
-import { bad, clientKey, isEmail, json, limited, newId, readJson, str, visitorFrom } from "@/server/http";
+import { bad, clientKey, consentedVisitor, forbidden, isEmail, json, limited, newId, readJson, sameOrigin, str } from "@/server/http";
 import { MAX_ENTRIES, mutate } from "@/server/store";
 
 export async function POST(req: Request) {
+  if (!sameOrigin(req)) return forbidden();
   if (limited(`feedback:${clientKey(req)}`, 8, 10 * 60_000)) return bad("Too much feedback at once - please try again later.", 429);
   const body = await readJson(req);
   if (!body) return bad("Invalid request.");
   if (str(body.website, 200)) return json({ ok: true }); // honeypot
 
-  const visitor = visitorFrom(body.visitor, req);
+  // Device details only with consent; otherwise just the anonymous visitor id.
+  const visitor = consentedVisitor(body, req);
   const rating = typeof body.rating === "number" && Number.isInteger(body.rating) && body.rating >= 1 && body.rating <= 5 ? body.rating : null;
   const message = str(body.message, 4000) ?? "";
   const name = str(body.name, 120);
@@ -16,10 +18,16 @@ export async function POST(req: Request) {
   if (!rating && message.length < 3) return bad("Pick a rating or write a few words.");
   if (email && !isEmail(email)) return bad("That email address doesn't look right.");
 
-  const saved = await mutate((db) => {
-    if (db.feedback.length >= MAX_ENTRIES) return false;
-    db.feedback.push({ id: newId(), createdAt: new Date().toISOString(), visitor, rating, message, name, email });
-    return true;
-  });
+  let saved: boolean;
+  try {
+    saved = await mutate((db) => {
+      if (db.feedback.length >= MAX_ENTRIES) return false;
+      db.feedback.push({ id: newId(), createdAt: new Date().toISOString(), visitor, rating, message, name, email });
+      return true;
+    });
+  } catch (err) {
+    console.error("[feedback] Could not save:", err);
+    return bad("Could not save right now.", 503);
+  }
   return saved ? json({ ok: true }, 201) : bad("Feedback box is full right now.", 507);
 }

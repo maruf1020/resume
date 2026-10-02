@@ -1,5 +1,5 @@
 import { getIntent } from "@/content/intents";
-import { bad, clientKey, extendedVisitor, json, limited, newId, readJson, str } from "@/server/http";
+import { bad, clientKey, extendedVisitor, forbidden, json, limited, newId, readJson, sameOrigin, str } from "@/server/http";
 import { MAX_EVENTS, mutate } from "@/server/store";
 
 /**
@@ -7,6 +7,7 @@ import { MAX_EVENTS, mutate } from "@/server/store";
  * With consent the visitor's device details are stored too.
  */
 export async function POST(req: Request) {
+  if (!sameOrigin(req)) return forbidden();
   if (limited(`events:${clientKey(req)}`, 120, 10 * 60_000)) return bad("Too many events.", 429);
   const body = await readJson(req, 6_000);
   if (!body) return bad("Invalid request.");
@@ -17,10 +18,18 @@ export async function POST(req: Request) {
   const consent = body.consent === true;
   const visitor = consent ? (extendedVisitor(body.visitor, req) ?? undefined) : undefined;
 
-  await mutate((db) => {
-    db.events ??= [];
-    db.events.push({ id: newId(), at: new Date().toISOString(), type, intentId, path, consent, visitor });
-    if (db.events.length > MAX_EVENTS) db.events.splice(0, db.events.length - MAX_EVENTS);
-  });
+  // Not durable: events are batched into the next flush instead of rewriting the store each time.
+  try {
+    await mutate(
+      (db) => {
+        db.events.push({ id: newId(), at: new Date().toISOString(), type, intentId, path, consent, visitor });
+        if (db.events.length > MAX_EVENTS) db.events.splice(0, db.events.length - MAX_EVENTS);
+      },
+      { durable: false },
+    );
+  } catch (err) {
+    console.error("[events] Could not save:", err);
+    return bad("Could not save right now.", 503);
+  }
   return json({ ok: true }, 201);
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { getConsent } from "./consent";
 import { withBase } from "./utils";
 
 const KEY = "portfolio:visitor";
@@ -35,12 +36,14 @@ export function visitorInfo() {
 
 export type ApiResult = { ok: boolean; error?: string; [k: string]: unknown };
 
+/** Device details go along only when the visitor accepted the privacy banner; otherwise just the anonymous id. */
 export async function postApi(path: string, body: Record<string, unknown>, method = "POST"): Promise<ApiResult> {
+  const consent = getConsent() === "granted";
   try {
     const res = await fetch(withBase(path), {
       method,
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...body, visitor: visitorInfo() }),
+      body: JSON.stringify({ ...body, consent, visitor: consent ? visitorInfo() : { visitorId: visitorId() } }),
     });
     const data = (await res.json().catch(() => ({}))) as ApiResult;
     return { ...data, ok: res.ok && data.ok !== false };

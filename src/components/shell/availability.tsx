@@ -10,7 +10,8 @@ export function Availability({ onClick, className }: { onClick: () => void; clas
       onClick={onClick}
       title="I'm open to new roles - click to see how to hire me"
       className={cn(
-        "flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm transition-colors hover:border-surface-strong hover:bg-surface",
+        // Under 390px the top bar has no room for the words: the dot stays, the label goes to screen readers only.
+        "flex shrink-0 items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm transition-colors hover:border-surface-strong hover:bg-surface pointer-coarse:min-h-11 max-[389px]:min-w-11 max-[389px]:justify-center",
         className,
       )}
     >
@@ -18,7 +19,7 @@ export function Availability({ onClick, className }: { onClick: () => void; clas
         <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-60 motion-reduce:hidden" />
         <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
       </span>
-      <span className="font-semibold whitespace-nowrap">
+      <span className="font-semibold whitespace-nowrap max-[389px]:sr-only">
         Open to <span className="hidden sm:inline">new </span>roles
       </span>
     </button>

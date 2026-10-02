@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { avatarSrc, photos as allPhotos } from "@/content/photos";
 import { profile } from "@/content/profile";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import { cn, withBase } from "@/lib/utils";
 
 type Ctx = { open: () => void };
@@ -14,16 +15,26 @@ export const usePhotoViewer = () => useContext(ViewerContext);
 /** Round face avatar that opens the photo. */
 export function Avatar({ size = 32, className }: { size?: number; className?: string }) {
   const { open } = usePhotoViewer();
+  // On touch screens the button grows to a 44px hit area; the negative margin keeps the layout (and the visible face) unchanged.
+  const slack = Math.max(0, (44 - size) / 2);
   return (
     <button
       type="button"
       onClick={open}
       aria-label={`View photo of ${profile.name}`}
-      className={cn("relative shrink-0 overflow-hidden rounded-full ring-1 ring-line transition-transform hover:scale-105", className)}
-      style={{ width: size, height: size }}
+      className={cn(
+        "group/avatar relative grid shrink-0 place-items-center rounded-full pointer-coarse:m-[calc(var(--av-slack)*-1)] pointer-coarse:p-[var(--av-slack)]",
+        className,
+      )}
+      style={{ "--av-slack": `${slack}px` } as React.CSSProperties}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={withBase(avatarSrc)} alt="" width={size} height={size} className="size-full object-cover" decoding="async" />
+      <span
+        className="block overflow-hidden rounded-full ring-1 ring-line transition-transform group-hover/avatar:scale-105"
+        style={{ width: size, height: size }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={withBase(avatarSrc)} alt="" width={size} height={size} className="size-full object-cover" decoding="async" />
+      </span>
     </button>
   );
 }
@@ -45,6 +56,9 @@ function Viewer({ onClose }: { onClose: () => void }) {
   const [dir, setDir] = useState(1);
   const [zoom, setZoom] = useState(1);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // Tab and Shift+Tab stay inside the viewer (with one photo, "Close photo" is the only stop).
+  useFocusTrap(dialogRef);
   const swipeX = useRef<number | null>(null);
   // Skip any photo that fails to load, so navigation never lands on an empty slide.
   const [broken, setBroken] = useState<string[]>([]);
@@ -87,6 +101,7 @@ function Viewer({ onClose }: { onClose: () => void }) {
 
   return (
     <motion.div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={`Photos of ${profile.name}`}
@@ -97,13 +112,13 @@ function Viewer({ onClose }: { onClose: () => void }) {
       transition={{ duration: 0.2 }}
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" aria-hidden="true" />
+      <div className="absolute inset-0 bg-[rgb(20_20_22/0.88)] backdrop-blur-md" aria-hidden="true" />
       <button
         ref={closeRef}
         type="button"
         onClick={onClose}
         aria-label="Close photo"
-        className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-10 grid size-10 place-items-center rounded-full text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+        className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-10 grid size-10 place-items-center pointer-coarse:size-11 rounded-full text-white/80 transition-colors hover:bg-white/15 hover:text-white"
       >
         <X className="size-5" />
       </button>

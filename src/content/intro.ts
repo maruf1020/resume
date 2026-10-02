@@ -28,7 +28,6 @@ export const introPools: IntroPool[] = [
       "I spent 3 years on luxury brands.",
       "I'm open to relocating globally.",
       "I prefer working on-site.",
-      "I'm ready to relocate.",
     ],
   },
   {

@@ -156,7 +156,7 @@ export const farewell: { name: string; text: string }[] = [
 
 export const facts: string[] = [
   "I started my career building Android apps in Java - including a transport app for BRAC.",
-  "My A/B testing CLI started as a side project and became the company's standard build tool.",
+  "ABTestLab, my open-source A/B testing CLI, started as a side project and became the company's standard build tool.",
   "I've shipped more than 1,500 A/B experiments for luxury brands. Gift finders are my favourite kind.",
   "I built a job finder that checks employers against official visa-sponsor registers.",
   "I once built a website that slowly grows suspicious of its visitors. It's called TrustPortal.",
