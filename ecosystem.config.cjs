@@ -1,6 +1,6 @@
 // PM2: `pm2 start ecosystem.config.cjs` after `npm ci && npm run build`.
-// Exactly one process: the JSON store and the rate limits live in this process's memory,
-// so cluster mode or several instances would lose writes.
+// One process: data lives in Postgres, but the rate limits and the admin sign-in queue live in this
+// process's memory, so with several instances they would apply per instance.
 module.exports = {
   apps: [
     {

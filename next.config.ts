@@ -45,6 +45,8 @@ const nextConfig: NextConfig = {
   basePath,
   images: { unoptimized: true },
   poweredByHeader: false,
+  // The Postgres driver stays a plain Node dependency (it probes optional native bindings at runtime).
+  serverExternalPackages: ["pg"],
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

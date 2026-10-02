@@ -4,4 +4,6 @@ export async function register() {
   const { proxyWarning } = await import("@/server/http");
   const warning = proxyWarning();
   if (warning) console.warn(warning);
+  const { dbConfigured } = await import("@/server/db");
+  if (!dbConfigured()) console.error("[db] DATABASE_URL is not set: messages, feedback, votes, analytics and the admin inbox will answer 503.");
 }

@@ -66,3 +66,16 @@ export const hasCodeShape = (q: string) =>
   /[a-z]/i.test(q) &&
   /\d/.test(q) &&
   /[A-Z]|[^a-zA-Z0-9]/.test(q);
+
+/**
+ * The intent whose label is exactly what was typed (or, for a single word, a keyword of the best
+ * match), so the ready-made answer can play without asking the AI: "projects", "skills", "docker".
+ */
+export function exactIntent(query: string, top?: Intent): Intent | undefined {
+  const q = normalize(query).replace(/^\//, "").trim();
+  if (!q) return undefined;
+  const byLabel = intents.find((i) => normalize(i.label) === q);
+  if (byLabel) return byLabel;
+  if (top && !q.includes(" ") && top.keywords.some((k) => normalize(k) === q)) return top;
+  return undefined;
+}

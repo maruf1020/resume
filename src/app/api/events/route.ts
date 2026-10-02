@@ -1,6 +1,6 @@
 import { getIntent } from "@/content/intents";
-import { bad, clientKey, extendedVisitor, forbidden, json, limited, newId, readJson, sameOrigin, str } from "@/server/http";
-import { MAX_EVENTS, mutate } from "@/server/store";
+import { bad, clientKey, extendedVisitor, forbidden, json, limited, readJson, sameOrigin, str } from "@/server/http";
+import { addEvent } from "@/server/store";
 
 /**
  * Analytics. Without consent only {type, intentId, path} is kept - no visitor id, no device details.
@@ -13,20 +13,13 @@ export async function POST(req: Request) {
   if (!body) return bad("Invalid request.");
   const type = body.type === "pageview" || body.type === "ask" ? body.type : null;
   if (!type) return bad("Unknown event.");
-  const intentId = typeof body.intentId === "string" && (getIntent(body.intentId) || body.intentId === "fallback") ? body.intentId : undefined;
+  const intentId = typeof body.intentId === "string" && (getIntent(body.intentId) || body.intentId === "fallback" || body.intentId === "ai") ? body.intentId : undefined;
   const path = str(body.path, 200);
   const consent = body.consent === true;
   const visitor = consent ? (extendedVisitor(body.visitor, req) ?? undefined) : undefined;
 
-  // Not durable: events are batched into the next flush instead of rewriting the store each time.
   try {
-    await mutate(
-      (db) => {
-        db.events.push({ id: newId(), at: new Date().toISOString(), type, intentId, path, consent, visitor });
-        if (db.events.length > MAX_EVENTS) db.events.splice(0, db.events.length - MAX_EVENTS);
-      },
-      { durable: false },
-    );
+    await addEvent({ type, intentId, path, consent, visitor });
   } catch (err) {
     console.error("[events] Could not save:", err);
     return bad("Could not save right now.", 503);

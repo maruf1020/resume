@@ -5,6 +5,7 @@ import { getIntent, intents } from "@/content/intents";
 import { profile } from "@/content/profile";
 import { absoluteUrl } from "@/lib/site";
 import { plain } from "@/lib/utils";
+import { aiEnabled } from "@/server/ai";
 
 // Every answer is prerendered so each one has a real, shareable URL. Unknown ids aren't blocked with
 // dynamicParams = false (that logs a NoFallbackError for each one); the page itself answers 404.
@@ -35,5 +36,5 @@ export async function generateMetadata(props: PageProps<"/ask/[intent]">): Promi
 export default async function AskPage(props: PageProps<"/ask/[intent]">) {
   const { intent: id } = await props.params;
   if (!getIntent(id)) notFound();
-  return <ChatApp initialIntent={id} />;
+  return <ChatApp initialIntent={id} aiEnabled={aiEnabled()} />;
 }

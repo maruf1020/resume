@@ -1,5 +1,5 @@
-import { bad, clientKey, consentedVisitor, forbidden, isEmail, json, limited, newId, readJson, sameOrigin, str } from "@/server/http";
-import { MAX_ENTRIES, mutate } from "@/server/store";
+import { bad, clientKey, consentedVisitor, forbidden, isEmail, json, limited, readJson, sameOrigin, str } from "@/server/http";
+import { addFeedback } from "@/server/store";
 
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return forbidden();
@@ -20,11 +20,7 @@ export async function POST(req: Request) {
 
   let saved: boolean;
   try {
-    saved = await mutate((db) => {
-      if (db.feedback.length >= MAX_ENTRIES) return false;
-      db.feedback.push({ id: newId(), createdAt: new Date().toISOString(), visitor, rating, message, name, email });
-      return true;
-    });
+    saved = await addFeedback({ visitor, rating, message, name, email });
   } catch (err) {
     console.error("[feedback] Could not save:", err);
     return bad("Could not save right now.", 503);

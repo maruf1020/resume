@@ -286,9 +286,9 @@ const base: Intent[] = [
     label: "How this site works",
     prompt: "How did you build this site?",
     icon: Hammer,
-    keywords: ["site", "website", "this", "built", "how", "ai", "chatgpt", "bot", "real"],
+    keywords: ["site", "website", "this", "built", "how", "ai", "chatgpt", "gemini", "llm", "model", "bot", "real"],
     answers: [
-      "No real AI was harmed in the making of this site. It's a **Next.js app** whose answers are all written from my CV, so nothing is invented. It keeps a small JSON file on my server: anonymous counts of pages and questions, what you choose to send me - messages, feedback and thumbs up or down - and basic device details only if you accept. No third-party trackers, no ads.",
+      "Mostly no AI. It's a **Next.js app** whose listed answers are all written from my CV, so nothing in them is invented. If you ask something none of them covers, **Google's Gemini** writes a short answer from that same CV text - labelled as AI, and with nothing else as its source. The site keeps a small database: anonymous counts of pages and questions, what you choose to send me - messages, feedback, thumbs up or down and free-form questions - and basic device details only if you accept. No third-party trackers, no ads.",
     ],
     blocks: [{ kind: "stack" }],
     followUps: ["projects", "privacy", "surprise"],

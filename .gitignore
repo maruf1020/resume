@@ -43,7 +43,7 @@ next-env.d.ts
 # used only by builds into a private .next-<name> folder (see next.config.ts)
 tsconfig.private.json
 
-# feedback store (contact messages, feedback, votes)
+# old JSON store (before Postgres): `npm run db:import`, then delete
 /data/
 
 # keep the env template

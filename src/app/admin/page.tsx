@@ -14,7 +14,7 @@ export default async function AdminPage() {
   // Without a valid session this page doesn't exist, to anyone.
   if (!(await isValidSession((await cookies()).get(ADMIN_COOKIE)?.value))) notFound();
   const db = await readDb();
-  const labels = Object.fromEntries([...intents, fallbackIntent].map((i) => [i.id, i.label]));
+  const labels = { ...Object.fromEntries([...intents, fallbackIntent].map((i) => [i.id, i.label])), ai: "AI answer" };
   // Only summaries of the event log reach the browser, not every raw event.
   return <AdminDashboard data={buildAdminData(db, labels)} labels={labels} />;
 }

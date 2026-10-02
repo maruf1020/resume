@@ -590,8 +590,9 @@ function SiteStack() {
     <div className="card space-y-4 p-5 md:p-6">
       <Tags items={siteStack} />
       <p className="text-[15px] text-muted">
-        Every answer lives in a typed content file. The &ldquo;chat&rdquo; matches what you pick or type against a list of allowed
-        questions - nothing is generated, so nothing can be made up.
+        Every listed answer lives in a typed content file; the &ldquo;chat&rdquo; matches what you pick or type against them, so those
+        can&rsquo;t be made up. A question none of them covers goes to Google&rsquo;s Gemini with the same CV text as its only source, and
+        comes back labelled as an AI answer.
       </p>
     </div>
   );
