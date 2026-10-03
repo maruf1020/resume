@@ -2,8 +2,8 @@ export type Photo = { src: string; width: number; height: number; alt: string };
 
 /** Photos shown in the viewer (the side arrows loop through them). Originals live in info/photos/originals. */
 export const photos: Photo[] = [
-  { src: "/images/photo-1.webp", width: 1350, height: 1800, alt: "Md Maruf Billah smiling, in a white panjabi" },
+  { src: "/images/md-maruf-billah.webp", width: 1350, height: 1800, alt: "Md Maruf Billah, Lead Software Engineer, smiling in a white panjabi" },
 ];
 
 /** Face crop of the first photo, used for avatars. */
-export const avatarSrc = "/images/avatar.webp";
+export const avatarSrc = "/images/md-maruf-billah-avatar.webp";

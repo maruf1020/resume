@@ -69,6 +69,24 @@ None of the admin variables may ever start with `NEXT_PUBLIC_`: they are read on
   - AI answers: every free-form question, what the AI did with it (answered, routed, declined, failed), the model and time it took, and its thumbs.
   - Plus search, JSON export and sign-out.
 
+## SEO
+
+- **Indexable pages** (server-rendered, one `h1`, unique title and description, breadcrumbs, JSON-LD):
+  - `/about/`, `/experience/`, `/projects/`, `/projects/<id>/`, `/skills/`, `/contact/`.
+  - Plus the chat home and `/cv/`.
+- **Chat pages** (`/ask/*`) are `noindex, follow`. Every chip, sidebar topic and project card in the chat is a real link to its content page. A normal click still answers in the chat.
+- **Structured data:** one `Person` and `WebSite` graph on every page (`src/lib/seo.ts`).
+  - `ProfilePage` on home and about, `ContactPage` on contact.
+  - `ItemList` plus `SoftwareSourceCode`/`CreativeWork` for projects, and `BreadcrumbList` everywhere.
+- **Files:**
+  - `sitemap.xml` lists indexable pages with images and `lastModified` from `CONTENT_UPDATED`.
+  - `robots.txt`, `/og.png`, and `/og/<project>.png` share images for each project.
+  - `/llms.txt` gives AI assistants a plain-text summary.
+  - `/indexnow.txt` holds the IndexNow key.
+- **Set the domain at build time:** `NEXT_PUBLIC_SITE_URL=https://<domain>` must be set when you run `npm run build`, not only at runtime. Canonicals, `sitemap.xml`, `robots.txt`, Open Graph URLs and JSON-LD are baked in at build time.
+- **After each deploy:** run `SITE_URL=https://<domain> INDEXNOW_KEY=<key> npm run seo:indexnow`. Also submit `sitemap.xml` in Google Search Console and Bing Webmaster Tools. Set `GOOGLE_SITE_VERIFICATION` / `BING_SITE_VERIFICATION` for the verification meta tags.
+- **Full strategy:** `info/SEO_PLAN.md` (private).
+
 ## Privacy and analytics
 
 - **First visit:** a banner asks the visitor to Accept or Reject. Their choice is kept in their browser and can be changed later in the "Privacy" answer (type *privacy* in the chat).

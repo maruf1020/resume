@@ -4,7 +4,7 @@ import { ChatApp } from "@/components/chat-app";
 import { getIntent, intents } from "@/content/intents";
 import { profile } from "@/content/profile";
 import { absoluteUrl } from "@/lib/site";
-import { plain } from "@/lib/utils";
+import { describe } from "@/lib/seo";
 import { aiEnabled } from "@/server/ai";
 
 // Every answer is prerendered so each one has a real, shareable URL. Unknown ids aren't blocked with
@@ -21,13 +21,15 @@ export async function generateMetadata(props: PageProps<"/ask/[intent]">): Promi
   const intent = getIntent(id);
   if (!intent) return {};
   const title = `${intent.label} - ${profile.name}`;
-  const description = plain(intent.answers[0]).slice(0, 160);
+  const description = describe(intent.answers[0]);
   const url = absoluteUrl(`/ask/${id}/`);
   // A child openGraph/twitter object replaces the root layout's, so siteName and the image are repeated here.
   return {
     title: intent.label,
     description,
-    alternates: { canonical: url },
+    // Chat views share one shell; the indexable copy of each topic is its content page (/about/, /projects/...).
+    // noindex keeps them out of results without blocking the links they carry.
+    robots: { index: false, follow: true },
     openGraph: { type: "website", siteName: profile.name, title, description, url, images: [ogImage] },
     twitter: { card: "summary_large_image", title, description, images: ["/og.png"] },
   };

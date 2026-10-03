@@ -3,6 +3,7 @@
 import { Ellipsis } from "lucide-react";
 import { getIntent, type Intent } from "@/content/intents";
 import { cn } from "@/lib/utils";
+import { IntentLink } from "./intent-link";
 
 type Props = {
   ids?: string[];
@@ -27,10 +28,10 @@ export function SuggestionChips({ ids, intents, onPick, wrap, center, compact, o
     <>
       {list.map((i) => (
         <li key={i.id} className="snap-start">
-          <button type="button" className={chip} onClick={() => onPick(i.id)}>
+          <IntentLink intentId={i.id} onPick={onPick} className={chip}>
             <i.icon className={icon} aria-hidden="true" />
             {i.label}
-          </button>
+          </IntentLink>
         </li>
       ))}
       {onMore && (

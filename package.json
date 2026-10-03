@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "admin:hash": "node scripts/hash-admin-code.mjs",
     "db:import": "node --env-file=.env.local scripts/import-json-store.mjs",
-    "check": "npm run typecheck && npm run lint && npm run build"
+    "check": "npm run typecheck && npm run lint && npm run build",
+    "seo:indexnow": "node scripts/indexnow.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

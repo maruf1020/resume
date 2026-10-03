@@ -6,7 +6,7 @@ export const cv = {
   showPhoto: true,
   title: "Lead Software Engineer · Full-Stack (JavaScript & TypeScript)",
   availability: "Open to on-site roles - in Bangladesh or relocating abroad",
-  photo: "/images/cv-photo.webp",
+  photo: "/images/md-maruf-billah-cv.webp",
 
   profile:
     "Lead Software Engineer with 5+ years shipping production web platforms in JavaScript and TypeScript for clients in France, the UK and Germany. I lead a team of 10 and still write a large share of the code - React and Next.js, Node.js and NestJS, PostgreSQL, and AWS/Azure with CI/CD - and I'm known for owning hard problems end to end, from sync and KPI engines to a double-entry wallet and crash-safe checkout.",

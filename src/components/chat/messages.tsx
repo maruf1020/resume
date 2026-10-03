@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Check, Copy, RefreshCw, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Check, Copy, FileText, RefreshCw, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
 import { AnimatedBlocks, loadGsap } from "@/components/blocks/animated-blocks";
 import { BlockView } from "@/components/blocks/blocks";
 import { resolveIntent, type AssistantMessage as AssistantMsg, type Phase } from "@/lib/chat";
-import { cn, plain } from "@/lib/utils";
+import { pageFor } from "@/lib/seo";
+import { cn, plain, withBase } from "@/lib/utils";
 import { postApi, readVotes, rememberVote } from "@/lib/visitor";
 import { RichText } from "./rich-text";
 import { SuggestionChips } from "./suggestion-chips";
@@ -164,6 +165,11 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
               <button type="button" className="icon-btn size-9" onClick={copy} aria-label="Copy answer">
                 {copied ? <Check className="size-4 text-accent" /> : <Copy className="size-4" />}
               </button>
+              {pageFor(intent.id) && (
+                <a href={withBase(pageFor(intent.id)!)} className="icon-btn size-9" aria-label="Open this answer as a page" title="Open as a page">
+                  <FileText className="size-4" />
+                </a>
+              )}
               <button
                 type="button"
                 className={cn("icon-btn size-9", vote === "up" && "text-accent hover:text-accent")}

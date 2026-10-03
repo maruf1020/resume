@@ -1,5 +1,6 @@
 "use client";
 
+import { IntentLink } from "@/components/chat/intent-link";
 import { motion } from "motion/react";
 import { PanelLeftClose, PanelLeftOpen, SquarePen, X } from "lucide-react";
 import { Github, Linkedin } from "@/components/brand-icons";
@@ -36,9 +37,9 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
     const active = activeIntent === id;
     return (
       <li key={id}>
-        <button
-          type="button"
-          onClick={() => onAsk(id)}
+        <IntentLink
+          intentId={id}
+          onPick={onAsk}
           aria-current={active ? "true" : undefined}
           aria-label={rail ? label : undefined}
           className={cn(
@@ -58,7 +59,7 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
           {!active && <span className="absolute inset-0 rounded-xl transition-colors group-hover:bg-surface/70" />}
           {Icon && <Icon className="relative size-[18px] shrink-0" />}
           {rail ? <RailTip>{label}</RailTip> : <span className="relative truncate">{label}</span>}
-        </button>
+        </IntentLink>
       </li>
     );
   };
