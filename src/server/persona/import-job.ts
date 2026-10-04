@@ -160,6 +160,9 @@ export function jobPersonaInput(): PersonaDocInput {
       links: [
         { kind: "github", label: "GitHub", href: profile.links.github },
         { kind: "linkedin", label: "LinkedIn", href: profile.links.linkedin },
+        { kind: "facebook", label: "Facebook", href: profile.links.facebook },
+        { kind: "instagram", label: "Instagram", href: profile.links.instagram },
+        { kind: "whatsapp", label: "WhatsApp", href: profile.links.whatsapp },
       ],
       avatar: { src: avatarSrc, alt: "" },
       photos: photos.map((p) => ({ src: p.src, width: p.width, height: p.height, alt: p.alt })),

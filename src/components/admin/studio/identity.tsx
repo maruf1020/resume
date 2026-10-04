@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { LTextInput, ListInput, NumberInput, Panel, RowActions, SelectInput, TextInput, Toggle, VisSelect, inputCls, smallBtn, type Vis } from "./controls";
 import type { TabProps } from "./studio";
 
-const LINK_KINDS = ["website", "linkedin", "github", "facebook", "instagram", "x", "other"] as const;
+const LINK_KINDS = ["website", "linkedin", "github", "facebook", "instagram", "whatsapp", "x", "other"] as const;
 
 /** What each label is, for the "Words on the site" table. */
 const LABEL_HELP: Record<LabelKey, string> = {
