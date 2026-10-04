@@ -1,5 +1,6 @@
 "use client";
 
+import { IntentLink } from "@/components/chat/intent-link";
 import { useState } from "react";
 import {
   ArrowUpRight,
@@ -186,10 +187,10 @@ function ProjectGrid({ onAsk }: { onAsk: Ask }) {
   return (
     <div className="space-y-3">
       {projects.map((p) => (
-        <button
+        <IntentLink
           key={p.id}
-          type="button"
-          onClick={() => onAsk(`project-${p.id}`)}
+          intentId={`project-${p.id}`}
+          onPick={onAsk}
           aria-label={`${p.name}: read the full story`}
           data-gs="row"
           className="card group flex w-full items-start gap-4 p-5 text-left transition-colors hover:border-surface-strong hover:bg-bg-soft md:p-6"
@@ -210,7 +211,7 @@ function ProjectGrid({ onAsk }: { onAsk: Ask }) {
           <span className="grid size-10 shrink-0 place-items-center rounded-full border border-line text-faint transition-colors group-hover:border-surface-strong group-hover:text-fg">
             <ArrowUpRight className="size-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </span>
-        </button>
+        </IntentLink>
       ))}
     </div>
   );
@@ -590,8 +591,9 @@ function SiteStack() {
     <div className="card space-y-4 p-5 md:p-6">
       <Tags items={siteStack} />
       <p className="text-[15px] text-muted">
-        Every answer lives in a typed content file. The &ldquo;chat&rdquo; matches what you pick or type against a list of allowed
-        questions - nothing is generated, so nothing can be made up.
+        Every listed answer lives in a typed content file; the &ldquo;chat&rdquo; matches what you pick or type against them, so those
+        can&rsquo;t be made up. A question none of them covers goes to Google&rsquo;s Gemini with the same CV text as its only source, and
+        comes back labelled as an AI answer.
       </p>
     </div>
   );
@@ -601,9 +603,9 @@ function Suggest({ onAsk }: { onAsk: Ask }) {
   return (
     <div className="flex flex-wrap gap-2">
       {primaryIntents.slice(0, 8).map((i) => (
-        <button key={i.id} type="button" className="chip" onClick={() => onAsk(i.id)}>
+        <IntentLink key={i.id} intentId={i.id} onPick={onAsk} className="chip">
           <i.icon className="size-4 text-faint" /> {i.label}
-        </button>
+        </IntentLink>
       ))}
     </div>
   );

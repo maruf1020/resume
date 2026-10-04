@@ -6,12 +6,13 @@ import { PrintButton } from "./print-button";
 import { cv } from "@/content/cv";
 import { quotes } from "@/content/details";
 import { profile } from "@/content/profile";
+import { describe } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/site";
 import { withBase } from "@/lib/utils";
 import "./cv.css";
 
 const cvTitle = `CV - ${profile.name}`;
-const cvDescription = `${profile.name} - ${cv.title}. ${cv.profile.slice(0, 120)}…`;
+const cvDescription = describe(`CV of ${profile.name}, ${profile.role}: ${cv.profile}`);
 
 // A child openGraph/twitter object replaces the root layout's, so siteName and the image are repeated here.
 export const metadata: Metadata = {

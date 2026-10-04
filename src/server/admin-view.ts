@@ -1,4 +1,4 @@
-import type { ContactEntry, Db, FeedbackEntry, VisitorInfo, VoteEntry } from "./store";
+import type { AiAnswerEntry, ContactEntry, Db, FeedbackEntry, VisitorInfo, VoteEntry } from "./store";
 
 /**
  * What the /admin page sends to the browser. The raw event log (up to 20,000 events, with device
@@ -9,6 +9,7 @@ export type AdminData = {
   contacts: ContactEntry[];
   feedback: FeedbackEntry[];
   votes: VoteEntry[];
+  aiAnswers: AiAnswerEntry[];
   analytics: AnalyticsSummary;
   activity: VisitorActivity[];
 };
@@ -120,6 +121,7 @@ export function buildAdminData(db: Db, labels: Record<string, string>, now = new
     contacts: db.contacts,
     feedback: db.feedback,
     votes: db.votes,
+    aiAnswers: db.aiAnswers,
     analytics: summarize(db, labels, now),
     activity: activityOf(db, labels),
   };

@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Check, Copy, RefreshCw, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Check, Copy, FileText, RefreshCw, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
 import { AnimatedBlocks, loadGsap } from "@/components/blocks/animated-blocks";
 import { BlockView } from "@/components/blocks/blocks";
-import { fallbackIntent, getIntent } from "@/content/intents";
-import type { AssistantMessage as AssistantMsg, Phase } from "@/lib/chat";
-import { cn, plain } from "@/lib/utils";
+import { resolveIntent, type AssistantMessage as AssistantMsg, type Phase } from "@/lib/chat";
+import { pageFor } from "@/lib/seo";
+import { cn, plain, withBase } from "@/lib/utils";
 import { postApi, readVotes, rememberVote } from "@/lib/visitor";
 import { RichText } from "./rich-text";
 import { SuggestionChips } from "./suggestion-chips";
@@ -45,14 +45,16 @@ type Props = {
 };
 
 export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: Props) {
-  const intent = getIntent(msg.intentId) ?? fallbackIntent;
+  const intent = resolveIntent(msg);
   const text = intent.answers[msg.variant % intent.answers.length];
   const words = text.split(/(\s+)/);
   const reduced = useReducedMotion();
   const instant = !msg.animate || !!reduced;
   const [count, setCount] = useState(0);
   const [copied, setCopied] = useState(false);
-  const voteKey = `${intent.id}:${msg.variant % intent.answers.length}`;
+  // AI answers are rated one by one (each is unique); curated ones per wording.
+  const aiAnswerId = msg.ai?.status === "ready" ? msg.ai.answerId : undefined;
+  const voteKey = aiAnswerId ? `ai:${aiAnswerId}` : `${intent.id}:${msg.variant % intent.answers.length}`;
   const [vote, setVote] = useState<"up" | "down" | null>(null);
   const [voteNote, setVoteNote] = useState(false);
   const [voteError, setVoteError] = useState(false);
@@ -82,7 +84,7 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
     // A failed thumbs-down keeps its "Tell me what was missing" note open, next to the error below.
     setVoteNote(next === "down");
     rememberVote(voteKey, next);
-    const res = await postApi("/api/vote/", { intentId: intent.id, variant: msg.variant % intent.answers.length, value: next });
+    const res = await postApi("/api/vote/", { intentId: intent.id, variant: aiAnswerId ? 0 : msg.variant % intent.answers.length, answerId: aiAnswerId, value: next });
     if (!res.ok) {
       setVote(vote);
       rememberVote(voteKey, vote);
@@ -93,7 +95,10 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
   // thinking → streaming → done. Stopping (phase forced to "done") short-circuits everything.
   useEffect(() => {
     if (msg.phase === "thinking") {
+      // A free-form question stays on "Reading my CV..." until the AI answers, then types straight away.
+      if (msg.ai?.status === "loading") return;
       if (instant) return onPhase(msg.id, "done");
+      if (msg.ai) return onPhase(msg.id, "streaming");
       const t = setTimeout(() => onPhase(msg.id, "streaming"), 450 + Math.random() * 300);
       return () => clearTimeout(t);
     }
@@ -102,7 +107,7 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
       const t = setTimeout(() => setCount((c) => Math.min(words.length, c + 2)), 24);
       return () => clearTimeout(t);
     }
-  }, [msg.phase, msg.id, count, words.length, instant, onPhase]);
+  }, [msg.phase, msg.id, msg.ai, count, words.length, instant, onPhase]);
 
   const done = msg.phase === "done";
   const shown = done ? text : words.slice(0, count).join("");
@@ -138,6 +143,12 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
           </p>
         )}
 
+        {done && msg.ai?.status === "ready" && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-faint">
+            <Sparkles className="size-3.5 shrink-0" aria-hidden="true" /> Answered by AI from my CV - it can be imperfect, so do check the cards and links.
+          </p>
+        )}
+
         {done && (
           <>
             {intent.blocks.length > 0 && (
@@ -154,6 +165,11 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
               <button type="button" className="icon-btn size-9" onClick={copy} aria-label="Copy answer">
                 {copied ? <Check className="size-4 text-accent" /> : <Copy className="size-4" />}
               </button>
+              {pageFor(intent.id) && (
+                <a href={withBase(pageFor(intent.id)!)} className="icon-btn size-9" aria-label="Open this answer as a page" title="Open as a page">
+                  <FileText className="size-4" />
+                </a>
+              )}
               <button
                 type="button"
                 className={cn("icon-btn size-9", vote === "up" && "text-accent hover:text-accent")}
@@ -172,7 +188,7 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
               >
                 <ThumbsDown className={cn("size-4", vote === "down" && "fill-current")} />
               </button>
-              {intent.id !== "fallback" && (
+              {intent.id !== "fallback" && !msg.ai && (
                 <button type="button" className="icon-btn size-9" onClick={() => onRegenerate(msg.id)} aria-label="Regenerate answer">
                   <RefreshCw className="size-4" />
                 </button>

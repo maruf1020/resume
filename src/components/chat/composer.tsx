@@ -2,8 +2,9 @@
 
 import { forwardRef, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUp, CornerDownLeft, Square } from "lucide-react";
-import { hasCodeShape, matchIntents, mentionsTopic } from "@/lib/match-intent";
+import { ArrowUp, CornerDownLeft, Sparkles, Square } from "lucide-react";
+import type { Intent } from "@/content/intents";
+import { exactIntent, hasCodeShape, matchIntents, mentionsTopic } from "@/lib/match-intent";
 import { cn, withBase } from "@/lib/utils";
 
 type Props = {
@@ -11,7 +12,12 @@ type Props = {
   generating: boolean;
   onStop: () => void;
   className?: string;
+  /** Typed questions go to the AI (which may still play a ready-made answer) instead of the keyword match. */
+  aiEnabled?: boolean;
 };
+
+/** What typed text can turn into: a ready-made answer, or a question for the AI. */
+type Option = { kind: "intent"; intent: Intent } | { kind: "ask" };
 
 /**
  * Only text with the access code's shape (one 8+ character word mixing letters, digits and an
@@ -40,7 +46,7 @@ async function tryAccessCode(code: string): Promise<CodeResult> {
 
 export type ComposerHandle = { focus: () => void; showAll: () => void };
 
-export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ onSubmit, generating, onStop, className }, ref) {
+export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ onSubmit, generating, onStop, className, aiEnabled = false }, ref) {
   const [value, setValue] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -64,8 +70,19 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ on
   const [checking, setChecking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const matches = useMemo(() => (value.trim() ? matchIntents(value) : []), [value]);
-  const showList = open && value.trim().length > 0;
+  const q = value.trim();
+  const matches = useMemo(() => (q ? matchIntents(q) : []), [q]);
+  // With the AI on, typed text is a question for it (Enter), unless it is exactly a topic's name or a
+  // single keyword, which the ready-made answer covers at once. The arrow keys still pick any ready-made
+  // answer, and "/" lists them all as before.
+  const options = useMemo<Option[]>(() => {
+    const ready = matches.map((intent): Option => ({ kind: "intent", intent }));
+    if (!aiEnabled || !q || q.startsWith("/")) return ready;
+    const exact = exactIntent(q, matches[0]);
+    if (exact) return [{ kind: "intent", intent: exact }, { kind: "ask" }, ...ready.filter((o) => o.kind === "intent" && o.intent.id !== exact.id)];
+    return [{ kind: "ask" }, ...ready];
+  }, [aiEnabled, q, matches]);
+  const showList = open && q.length > 0;
 
   const send = (intentId: string, text?: string) => {
     onSubmit(intentId, text);
@@ -74,12 +91,12 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ on
     setActive(0);
   };
 
-  const submit = async () => {
+  const submitWith = async (chosen: Option | undefined) => {
     if (generating) return onStop();
-    const q = value.trim();
     if (!q || checking) return;
     setNotice(null);
-    if (mightBeCode(q, matches.length)) {
+    const codeLike = mightBeCode(q, matches.length);
+    if (codeLike) {
       setChecking(true);
       const result = await tryAccessCode(q);
       setChecking(false);
@@ -92,18 +109,20 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ on
         return;
       }
     }
-    if (matches.length) send(matches[active]?.id ?? matches[0].id);
-    else send("fallback", q);
+    if (chosen?.kind === "intent") return send(chosen.intent.id);
+    // Text shaped like an access code is never sent to the AI: it may be a mistyped code.
+    send(chosen && !codeLike ? "ai" : "fallback", q);
   };
+  const submit = () => submitWith(options[active] ?? options[0]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowDown" && matches.length) {
+    if (e.key === "ArrowDown" && options.length) {
       e.preventDefault();
       setOpen(true);
-      setActive((a) => (a + 1) % matches.length);
-    } else if (e.key === "ArrowUp" && matches.length) {
+      setActive((a) => (a + 1) % options.length);
+    } else if (e.key === "ArrowUp" && options.length) {
       e.preventDefault();
-      setActive((a) => (a - 1 + matches.length) % matches.length);
+      setActive((a) => (a - 1 + options.length) % options.length);
     } else if (e.key === "Enter") {
       e.preventDefault();
       submit();
@@ -123,29 +142,43 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ on
             transition={{ duration: 0.16 }}
             className="absolute inset-x-0 bottom-full z-20 mb-2 overflow-hidden rounded-3xl border border-line bg-card shadow-[0_18px_50px_-12px_rgb(0_0_0/0.25)]"
           >
-            {matches.length ? (
+            {options.length ? (
               <ul id={listId} role="listbox" aria-label="Questions you can ask" className="max-h-[50vh] overflow-y-auto p-1.5">
-                {matches.map((m, i) => (
+                {options.map((o, i) => (
                   <li
-                    key={m.id}
+                    key={o.kind === "ask" ? "ask" : o.intent.id}
                     id={`${listId}-${i}`}
                     role="option"
                     aria-selected={i === active}
                     onMouseEnter={() => setActive(i)}
                     onMouseDown={(e) => {
                       e.preventDefault();
-                      send(m.id);
+                      submitWith(o);
                     }}
                     className={cn(
                       "flex cursor-pointer items-center gap-3 rounded-2xl px-3.5 py-2.5",
                       i === active && "bg-surface",
                     )}
                   >
-                    <m.icon className="size-[18px] shrink-0 text-faint" aria-hidden="true" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-semibold">{m.label}</span>
-                      <span className="block truncate text-sm text-muted">{m.prompt}</span>
-                    </span>
+                    {o.kind === "ask" ? (
+                      <>
+                        <Sparkles className="size-[18px] shrink-0 text-accent" aria-hidden="true" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-semibold">Ask: &ldquo;{q}&rdquo;</span>
+                          <span className="block truncate text-sm text-muted">
+                            {matches.length ? "The AI answers from my CV" : "No ready-made answer for that - the AI answers from my CV"}
+                          </span>
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <o.intent.icon className="size-[18px] shrink-0 text-faint" aria-hidden="true" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-semibold">{o.intent.label}</span>
+                          <span className="block truncate text-sm text-muted">{o.intent.prompt}</span>
+                        </span>
+                      </>
+                    )}
                     {i === active && <CornerDownLeft className="size-4 shrink-0 text-faint" aria-hidden="true" />}
                   </li>
                 ))}
@@ -169,7 +202,7 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ on
           ref={inputRef}
           value={value}
           onChange={(e) => {
-            setValue(e.target.value.slice(0, 80));
+            setValue(e.target.value.slice(0, aiEnabled ? 300 : 80));
             setNotice(null);
             setOpen(true);
             setActive(0);
@@ -177,13 +210,13 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ on
           onFocus={() => setOpen(true)}
           onBlur={() => setOpen(false)}
           onKeyDown={onKeyDown}
-          placeholder="Ask about my work, projects, skills…"
+          placeholder={aiEnabled ? "Ask me anything about my work, projects, skills…" : "Ask about my work, projects, skills…"}
           aria-label="Ask a question about Maruf"
           role="combobox"
           aria-expanded={showList}
-          aria-controls={showList && matches.length ? listId : undefined}
+          aria-controls={showList && options.length ? listId : undefined}
           aria-autocomplete="list"
-          aria-activedescendant={showList && matches.length ? `${listId}-${active}` : undefined}
+          aria-activedescendant={showList && options.length ? `${listId}-${active}` : undefined}
           enterKeyHint="send"
           autoComplete="off"
           spellCheck={false}
@@ -192,7 +225,7 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer({ on
         <button
           type="button"
           onClick={submit}
-          disabled={!generating && !value.trim()}
+          disabled={!generating && !q}
           aria-label={generating ? "Stop generating" : "Send"}
           className="grid size-11 shrink-0 place-items-center rounded-full bg-fg text-bg transition-opacity disabled:opacity-25"
         >

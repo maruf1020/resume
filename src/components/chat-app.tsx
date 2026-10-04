@@ -11,7 +11,7 @@ import { SuggestionChips } from "@/components/chat/suggestion-chips";
 import { TypedIntro } from "@/components/hero/typed-intro";
 import { Sidebar } from "@/components/shell/sidebar";
 import { TopBar } from "@/components/shell/top-bar";
-import { fallbackIntent, getIntent, type Intent } from "@/content/intents";
+import { getIntent, type Intent } from "@/content/intents";
 import { profile } from "@/content/profile";
 import { focusInOtherModal, useFocusTrap } from "@/lib/use-focus-trap";
 
@@ -19,10 +19,10 @@ import { focusInOtherModal, useFocusTrap } from "@/lib/use-focus-trap";
 const LANDING = ["about", "experience", "projects", "skills", "hire"]
   .map((id) => getIntent(id))
   .filter((i): i is Intent => !!i);
-import { useChat } from "@/lib/chat";
+import { resolveIntent, useChat } from "@/lib/chat";
 import { startSession, track } from "@/lib/consent";
 
-export function ChatApp({ initialIntent }: { initialIntent?: string }) {
+export function ChatApp({ initialIntent, aiEnabled = false }: { initialIntent?: string; aiEnabled?: boolean }) {
   const chat = useChat(initialIntent);
   const { messages, generating, ask: chatAsk } = chat;
   const empty = messages.length === 0;
@@ -150,7 +150,7 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
   const status =
     lastAssistant?.role === "assistant" && lastAssistant.animate
       ? lastAssistant.phase === "done"
-        ? `Answer ready: ${(getIntent(lastAssistant.intentId) ?? fallbackIntent).label}`
+        ? `Answer ready: ${resolveIntent(lastAssistant).label}`
         : "Reading my CV"
       : "";
 
@@ -300,7 +300,7 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
               </AnimatePresence>
               {!empty && <div className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-bg to-transparent" />}
               <div className="mx-auto max-w-3xl">
-                <Composer ref={composer} onSubmit={ask} generating={generating} onStop={chat.stop} />
+                <Composer ref={composer} onSubmit={ask} generating={generating} onStop={chat.stop} aiEnabled={aiEnabled} />
                 {empty && (
                   <SuggestionChips intents={LANDING} onPick={ask} onMore={() => composer.current?.showAll()} compact className="mt-2.5" />
                 )}
@@ -311,7 +311,7 @@ export function ChatApp({ initialIntent }: { initialIntent?: string }) {
                       everything you can ask.
                     </>
                   ) : (
-                    <>Answers come straight from my CV - nothing is generated.</>
+                    <>{aiEnabled ? "Listed answers come straight from my CV; anything else is answered by AI, from my CV only." : "Answers come straight from my CV - nothing is generated."}</>
                   )}
                 </p>
               </div>

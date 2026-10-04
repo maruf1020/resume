@@ -1,7 +1,5 @@
 import { createHash, createHmac, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
-import { promises as fs } from "node:fs";
-import path from "node:path";
-import { sidecarFile } from "./store";
+import { bumpSetting, getSetting } from "./store";
 
 export const ADMIN_COOKIE = "fb_admin";
 export const SESSION_SECONDS = 2 * 60 * 60;
@@ -115,7 +113,7 @@ export async function codeMatches(input: string): Promise<boolean> {
 
 // ---------- session signing ----------
 
-const g = globalThis as typeof globalThis & { __adminDevKey?: string; __adminEpoch?: number; __adminKeyWarned?: boolean };
+const g = globalThis as typeof globalThis & { __adminDevKey?: string; __adminKeyWarned?: boolean };
 
 /**
  * The HMAC key for session cookies. ADMIN_SESSION_SECRET must be at least 32 characters and not the
@@ -143,28 +141,17 @@ const sign = (key: string, payload: string) => createHmac("sha256", key).update(
 
 // ---------- session epoch (sign-out revokes every session) ----------
 
-const epochFile = () => sidecarFile("admin-session.json");
+const EPOCH_KEY = "admin_epoch";
 
+/** Read from the database each time (admin requests only), so a sign-out counts on every instance. */
 async function readEpoch(): Promise<number> {
-  if (g.__adminEpoch !== undefined) return g.__adminEpoch;
-  try {
-    const parsed = JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ epochFile(), "utf8")) as { epoch?: unknown };
-    g.__adminEpoch = typeof parsed.epoch === "number" && Number.isInteger(parsed.epoch) && parsed.epoch >= 0 ? parsed.epoch : 0;
-  } catch {
-    g.__adminEpoch = 0;
-  }
-  return g.__adminEpoch;
+  const value = Number(await getSetting(EPOCH_KEY));
+  return Number.isInteger(value) && value >= 0 ? value : 0;
 }
 
 /** Invalidates every session issued so far. */
 export async function revokeAllSessions(): Promise<void> {
-  const next = (await readEpoch()) + 1;
-  g.__adminEpoch = next;
-  const file = epochFile();
-  await fs.mkdir(path.dirname(file), { recursive: true });
-  const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify({ epoch: next }), "utf8");
-  await fs.rename(tmp, file);
+  await bumpSetting(EPOCH_KEY);
 }
 
 /** Token = "<expiry-unix>.<epoch>.<hmac>". Signing out bumps the epoch, so older tokens stop working. */
@@ -184,7 +171,12 @@ export async function isValidSession(token: string | undefined): Promise<boolean
   const expected = Buffer.from(sign(key, `${exp}.${epoch}`));
   const given = Buffer.from(mac);
   if (expected.length !== given.length || !timingSafeEqual(expected, given)) return false;
-  return Number(epoch) === (await readEpoch());
+  try {
+    return Number(epoch) === (await readEpoch());
+  } catch (err) {
+    console.error("[admin] Could not read the session epoch:", err);
+    return false;
+  }
 }
 
 export const sessionCookie = (value: string, maxAge: number) => ({

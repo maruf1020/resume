@@ -2,12 +2,15 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { profile } from "@/content/profile";
+import { JsonLd } from "@/components/site/site-shell";
+import { graph, personLd, websiteLd } from "@/lib/seo";
 import { siteUrl } from "@/lib/site";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-const serif = Instrument_Serif({ variable: "--font-instrument", subsets: ["latin"], weight: "400", style: ["normal", "italic"] });
+// Mono and the serif only style small labels and quotes: not preloaded, so they never compete with the hero text.
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], preload: false });
+const serif = Instrument_Serif({ variable: "--font-instrument", subsets: ["latin"], weight: "400", style: ["normal", "italic"], preload: false });
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -23,6 +26,17 @@ export const metadata: Metadata = {
     images: [{ url: "/og.png", width: 1200, height: 630, alt: `${profile.name} - ${profile.role}` }],
   },
   twitter: { card: "summary_large_image", images: ["/og.png"] },
+  applicationName: profile.name,
+  authors: [{ name: profile.name, url: siteUrl }],
+  creator: profile.name,
+  publisher: profile.name,
+  category: "technology",
+  formatDetection: { telephone: false },
+  // Search Console / Bing Webmaster verification: set the tokens in the server env (never secret, but per site).
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined,
+  },
 };
 
 export const viewport: Viewport = {
@@ -35,22 +49,13 @@ export const viewport: Viewport = {
   ],
 };
 
-const personJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Person",
-  name: profile.name,
-  jobTitle: profile.role,
-  email: `mailto:${profile.email}`,
-  address: { "@type": "PostalAddress", addressLocality: "Dhaka", addressCountry: "BD" },
-  sameAs: [profile.links.github, profile.links.linkedin],
-  alumniOf: "North South University",
-};
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} ${serif.variable} antialiased`}>
       <body>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }} />
+        {/* One Person + WebSite graph on every page; pages add their own nodes that reference these @ids. */}
+        <JsonLd data={graph(personLd(), websiteLd())} />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

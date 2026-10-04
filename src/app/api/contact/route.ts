@@ -1,5 +1,5 @@
-import { bad, clientKey, consentedVisitor, forbidden, isEmail, json, limited, newId, readJson, sameOrigin, str } from "@/server/http";
-import { MAX_ENTRIES, mutate } from "@/server/store";
+import { bad, clientKey, consentedVisitor, forbidden, isEmail, json, limited, readJson, sameOrigin, str } from "@/server/http";
+import { addContact } from "@/server/store";
 
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return forbidden();
@@ -21,11 +21,7 @@ export async function POST(req: Request) {
 
   let saved: boolean;
   try {
-    saved = await mutate((db) => {
-      if (db.contacts.length >= MAX_ENTRIES) return false;
-      db.contacts.push({ id: newId(), createdAt: new Date().toISOString(), visitor, name, email, company, message });
-      return true;
-    });
+    saved = await addContact({ visitor, name, email, company, message });
   } catch (err) {
     console.error("[contact] Could not save:", err);
     return bad("Could not save right now.", 503);

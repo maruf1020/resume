@@ -165,7 +165,7 @@ export const facts: string[] = [
   "I wrote 136 of the 233 commits on my university capstone, including a WebRTC video-class room.",
   "I'm the only developer on my company's annual-tour app - every one of its commits is mine.",
   "I built a double-entry wallet ledger for a travel super-app, so a crash mid-checkout can't lose anyone's money.",
-  "This site has no AI behind it. Just a very well-prepared résumé.",
+  "The listed answers on this site aren't AI - just a very well-prepared résumé. AI only steps in for the questions I didn't see coming.",
 ];
 
-export const siteStack = ["Next.js 16", "React 19", "TypeScript", "Tailwind CSS v4", "Motion", "next-themes", "JSON file store"];
+export const siteStack = ["Next.js 16", "React 19", "TypeScript", "Tailwind CSS v4", "Motion", "next-themes", "Postgres (Neon)", "Gemini (free-form questions)"];

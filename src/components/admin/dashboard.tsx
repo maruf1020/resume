@@ -17,6 +17,7 @@ import {
   MessageSquareText,
   Monitor,
   Search,
+  Sparkles,
   Star,
   ThumbsDown,
   ThumbsUp,
@@ -27,10 +28,10 @@ import { ThemeToggle } from "@/components/theme-provider";
 import { Analytics } from "./analytics";
 import type { AdminData } from "@/server/admin-view";
 import type { VisitorInfo } from "@/server/store";
-import { cn, withBase } from "@/lib/utils";
+import { cn, plain, withBase } from "@/lib/utils";
 
 type Props = { data: AdminData; labels: Record<string, string> };
-type Tab = "all" | "messages" | "feedback" | "votes" | "visitors" | "analytics";
+type Tab = "all" | "messages" | "feedback" | "votes" | "ai" | "visitors" | "analytics";
 
 type Item = {
   id: string;
@@ -309,6 +310,7 @@ export function AdminDashboard({ data: db, labels }: Props) {
     { id: "messages", label: "Messages", count: db.contacts.length },
     { id: "feedback", label: "Feedback", count: db.feedback.length },
     { id: "votes", label: "Votes", count: db.votes.length },
+    { id: "ai", label: "AI answers", count: db.aiAnswers.length },
     { id: "visitors", label: "Visitors", count: visitors.length },
     { id: "analytics", label: "Analytics", count: db.analytics.views },
   ];
@@ -448,6 +450,8 @@ export function AdminDashboard({ data: db, labels }: Props) {
           <div className={cn("min-h-0 min-w-0 border-line lg:border-r", hasDetail && "hidden lg:block")}>
             {tab === "votes" ? (
               <VotesTable db={db} labels={labels} query={needle} />
+            ) : tab === "ai" ? (
+              <AiAnswersTable db={db} labels={labels} query={needle} now={now} />
             ) : tab === "visitors" ? (
               <>
                 {/* Why this count is bigger than "Visitors who interacted": it also has people who only browsed with analytics accepted. */}
@@ -519,9 +523,13 @@ export function AdminDashboard({ data: db, labels }: Props) {
                   <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-surface text-faint">
                     <Inbox className="size-6" />
                   </span>
-                  <p className="mt-4 font-semibold">{tab === "votes" ? "Votes by answer" : "Select an item"}</p>
+                  <p className="mt-4 font-semibold">{tab === "votes" ? "Votes by answer" : tab === "ai" ? "AI answers" : "Select an item"}</p>
                   <p className="mt-1 text-sm text-muted">
-                    {tab === "votes" ? "See which answers visitors liked and which missed." : "Pick something on the left to see the person, their details and everything they did."}
+                    {tab === "votes"
+                      ? "See which answers visitors liked and which missed."
+                      : tab === "ai"
+                        ? "Questions no curated answer covered: what the AI did with each, and how visitors rated it. Frequent ones are good candidates for new curated answers."
+                        : "Pick something on the left to see the person, their details and everything they did."}
                   </p>
                 </div>
               </div>
@@ -738,6 +746,65 @@ function VotesTable({ db, labels, query }: { db: Pick<AdminData, "votes">; label
                 <ThumbsDown className="size-3.5" /> {r.down}
               </span>
             </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+const ROUTE = {
+  answer: { label: "Answered", tone: "bg-emerald-500/12 text-emerald-800 dark:text-emerald-400" },
+  topic: { label: "Routed", tone: "bg-sky-500/12 text-sky-800 dark:text-sky-400" },
+  decline: { label: "Declined", tone: "bg-surface text-muted" },
+  error: { label: "Failed", tone: DOWN_TONE },
+} as const;
+
+/** Free-form questions the AI handled, newest first, with the visitors' thumbs on each answer. */
+function AiAnswersTable({ db, labels, query, now }: { db: Pick<AdminData, "aiAnswers" | "votes">; labels: Record<string, string>; query: string; now: number | null }) {
+  const votes = useMemo(() => {
+    const m = new Map<string, { up: number; down: number }>();
+    for (const v of db.votes) {
+      if (!v.answerId) continue;
+      const r = m.get(v.answerId) ?? { up: 0, down: 0 };
+      r[v.value]++;
+      m.set(v.answerId, r);
+    }
+    return m;
+  }, [db.votes]);
+  const rows = useMemo(() => [...db.aiAnswers].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [db.aiAnswers]);
+  const shown = rows.filter((a) => !query || a.question.toLowerCase().includes(query) || a.answer?.toLowerCase().includes(query));
+  if (!shown.length) return <ul><Empty query={query} /></ul>;
+  return (
+    <ul className="divide-y divide-line">
+      {shown.map((a) => {
+        const r = ROUTE[a.route];
+        const v = votes.get(a.id);
+        return (
+          <li key={a.id} className="space-y-1.5 px-4 py-3.5">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+              <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold", r.tone)}>
+                <Sparkles className="size-3" /> {r.label}
+              </span>
+              {a.route === "topic" && a.intentId && <span>to {labels[a.intentId] ?? a.intentId}</span>}
+              <span className="ml-auto tabular-nums" title={absolute(a.createdAt)}>
+                {ago(a.createdAt, now)}
+                {a.model ? ` · ${a.model}` : ""} · {(a.ms / 1000).toFixed(1)}s
+              </span>
+            </div>
+            <p className="font-semibold">{a.question}</p>
+            {a.answer && <p className="text-sm leading-relaxed text-muted">{plain(a.answer)}</p>}
+            {a.cards?.length ? <p className="text-xs text-faint">Cards: {a.cards.join(", ")}</p> : null}
+            {v && (
+              <p className="flex items-center gap-3 text-xs text-muted tabular-nums">
+                <span className="inline-flex items-center gap-1">
+                  <ThumbsUp className="size-3.5" /> {v.up}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <ThumbsDown className="size-3.5" /> {v.down}
+                </span>
+              </p>
+            )}
           </li>
         );
       })}
