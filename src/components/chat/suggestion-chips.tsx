@@ -1,12 +1,15 @@
 "use client";
 
 import { Ellipsis } from "lucide-react";
-import { getIntent, type Intent } from "@/content/intents";
+import { usePersona } from "@/lib/persona/context";
+import { QIcon } from "@/lib/persona/icons";
+import type { Question } from "@/lib/persona/types";
 import { cn } from "@/lib/utils";
+import { IntentLink } from "./intent-link";
 
 type Props = {
   ids?: string[];
-  intents?: Intent[];
+  intents?: Question[];
   onPick: (intentId: string) => void;
   /** Wrap onto several lines instead of scrolling sideways. */
   wrap?: boolean;
@@ -20,17 +23,18 @@ type Props = {
 };
 
 export function SuggestionChips({ ids, intents, onPick, wrap, center, compact, onMore, className }: Props) {
-  const list = intents ?? (ids ?? []).map((id) => getIntent(id)).filter((i): i is Intent => !!i);
+  const persona = usePersona();
+  const list = intents ?? (ids ?? []).map((id) => persona.get(id)).filter((i): i is Question => !!i && i.id !== "fallback");
   const chip = compact ? "chip chip-sm" : "chip";
   const icon = compact ? "size-3.5 text-faint" : "size-4 text-faint";
   const items = (
     <>
       {list.map((i) => (
         <li key={i.id} className="snap-start">
-          <button type="button" className={chip} onClick={() => onPick(i.id)}>
-            <i.icon className={icon} aria-hidden="true" />
+          <IntentLink intentId={i.id} onPick={onPick} className={chip}>
+            <QIcon name={i.icon} className={icon} />
             {i.label}
-          </button>
+          </IntentLink>
         </li>
       ))}
       {onMore && (

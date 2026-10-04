@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Check, Copy, RefreshCw, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Check, Copy, FileText, RefreshCw, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
 import { AnimatedBlocks, loadGsap } from "@/components/blocks/animated-blocks";
 import { BlockView } from "@/components/blocks/blocks";
-import { fallbackIntent, getIntent } from "@/content/intents";
-import type { AssistantMessage as AssistantMsg, Phase } from "@/lib/chat";
+import { resolveIntent, type AssistantMessage as AssistantMsg, type Phase } from "@/lib/chat";
+import { usePersona } from "@/lib/persona/context";
 import { cn, plain } from "@/lib/utils";
 import { postApi, readVotes, rememberVote } from "@/lib/visitor";
 import { RichText } from "./rich-text";
@@ -28,10 +28,11 @@ export function UserMessage({ text }: { text: string }) {
 }
 
 export function AssistantAvatar() {
+  const { identity } = usePersona();
   return (
     <span className="grid size-8 shrink-0 place-items-center rounded-[0.7rem] bg-fg text-[15px] font-bold text-bg md:size-9">
-      <span aria-hidden="true">M</span>
-      <span className="sr-only">Maruf:</span>
+      <span aria-hidden="true">{identity.shortName.slice(0, 1).toUpperCase()}</span>
+      <span className="sr-only">{`${identity.shortName}:`}</span>
     </span>
   );
 }
@@ -45,14 +46,21 @@ type Props = {
 };
 
 export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: Props) {
-  const intent = getIntent(msg.intentId) ?? fallbackIntent;
+  const persona = usePersona();
+  const intent = resolveIntent(msg, persona);
+  // The indexable page that covers this answer (curated answers only).
+  const page = msg.ai ? undefined : persona.get(intent.id)?.page;
   const text = intent.answers[msg.variant % intent.answers.length];
   const words = text.split(/(\s+)/);
   const reduced = useReducedMotion();
   const instant = !msg.animate || !!reduced;
   const [count, setCount] = useState(0);
   const [copied, setCopied] = useState(false);
-  const voteKey = `${intent.id}:${msg.variant % intent.answers.length}`;
+  // AI answers are rated one by one (each is unique); curated ones per wording.
+  const aiAnswerId = msg.ai?.status === "ready" ? msg.ai.answerId : undefined;
+  // The site's own replies (an access code was typed) are not rated.
+  const notice = msg.ai?.status === "ready" && !!msg.ai.notice;
+  const voteKey = aiAnswerId ? `ai:${aiAnswerId}` : `${intent.id}:${msg.variant % intent.answers.length}`;
   const [vote, setVote] = useState<"up" | "down" | null>(null);
   const [voteNote, setVoteNote] = useState(false);
   const [voteError, setVoteError] = useState(false);
@@ -82,7 +90,7 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
     // A failed thumbs-down keeps its "Tell me what was missing" note open, next to the error below.
     setVoteNote(next === "down");
     rememberVote(voteKey, next);
-    const res = await postApi("/api/vote/", { intentId: intent.id, variant: msg.variant % intent.answers.length, value: next });
+    const res = await postApi("/api/vote/", { intentId: intent.id, variant: aiAnswerId ? 0 : msg.variant % intent.answers.length, answerId: aiAnswerId, value: next });
     if (!res.ok) {
       setVote(vote);
       rememberVote(voteKey, vote);
@@ -93,7 +101,10 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
   // thinking → streaming → done. Stopping (phase forced to "done") short-circuits everything.
   useEffect(() => {
     if (msg.phase === "thinking") {
+      // A free-form question stays on "Reading my CV..." until the AI answers, then types straight away.
+      if (msg.ai?.status === "loading") return;
       if (instant) return onPhase(msg.id, "done");
+      if (msg.ai) return onPhase(msg.id, "streaming");
       const t = setTimeout(() => onPhase(msg.id, "streaming"), 450 + Math.random() * 300);
       return () => clearTimeout(t);
     }
@@ -102,7 +113,7 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
       const t = setTimeout(() => setCount((c) => Math.min(words.length, c + 2)), 24);
       return () => clearTimeout(t);
     }
-  }, [msg.phase, msg.id, count, words.length, instant, onPhase]);
+  }, [msg.phase, msg.id, msg.ai, count, words.length, instant, onPhase]);
 
   const done = msg.phase === "done";
   const shown = done ? text : words.slice(0, count).join("");
@@ -131,10 +142,16 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
       <AssistantAvatar />
       <div className="min-w-0 flex-1 pt-0.5">
         {msg.phase === "thinking" ? (
-          <p className="shimmer text-[17px] font-medium md:text-lg">Reading my CV...</p>
+          <p className="shimmer text-[17px] font-medium md:text-lg">{persona.labels.thinking}</p>
         ) : (
           <p className="text-[18px] leading-[1.65] text-fg/90 md:text-[19px]">
             <RichText text={shown} />
+          </p>
+        )}
+
+        {done && msg.ai?.status === "ready" && !msg.ai.notice && !msg.ai.gated && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-faint">
+            <Sparkles className="size-3.5 shrink-0" aria-hidden="true" /> {persona.labels.aiDisclaimer}
           </p>
         )}
 
@@ -154,25 +171,34 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
               <button type="button" className="icon-btn size-9" onClick={copy} aria-label="Copy answer">
                 {copied ? <Check className="size-4 text-accent" /> : <Copy className="size-4" />}
               </button>
-              <button
-                type="button"
-                className={cn("icon-btn size-9", vote === "up" && "text-accent hover:text-accent")}
-                onClick={() => castVote("up")}
-                aria-label="Good answer"
-                aria-pressed={vote === "up"}
-              >
-                <ThumbsUp className={cn("size-4", vote === "up" && "fill-current")} />
-              </button>
-              <button
-                type="button"
-                className={cn("icon-btn size-9", vote === "down" && "text-accent hover:text-accent")}
-                onClick={() => castVote("down")}
-                aria-label="Bad answer"
-                aria-pressed={vote === "down"}
-              >
-                <ThumbsDown className={cn("size-4", vote === "down" && "fill-current")} />
-              </button>
-              {intent.id !== "fallback" && (
+              {page && (
+                <a href={persona.href(page)} className="icon-btn size-9" aria-label="Open this answer as a page" title="Open as a page">
+                  <FileText className="size-4" />
+                </a>
+              )}
+              {!notice && (
+                <>
+                <button
+                  type="button"
+                  className={cn("icon-btn size-9", vote === "up" && "text-accent hover:text-accent")}
+                  onClick={() => castVote("up")}
+                  aria-label="Good answer"
+                  aria-pressed={vote === "up"}
+                >
+                  <ThumbsUp className={cn("size-4", vote === "up" && "fill-current")} />
+                </button>
+                <button
+                  type="button"
+                  className={cn("icon-btn size-9", vote === "down" && "text-accent hover:text-accent")}
+                  onClick={() => castVote("down")}
+                  aria-label="Bad answer"
+                  aria-pressed={vote === "down"}
+                >
+                  <ThumbsDown className={cn("size-4", vote === "down" && "fill-current")} />
+                </button>
+                </>
+              )}
+              {intent.id !== "fallback" && !msg.ai && (
                 <button type="button" className="icon-btn size-9" onClick={() => onRegenerate(msg.id)} aria-label="Regenerate answer">
                   <RefreshCw className="size-4" />
                 </button>
@@ -182,7 +208,7 @@ export function AssistantMessage({ msg, isLast, onPhase, onAsk, onRegenerate }: 
             <p role="status" aria-live="polite" className={cn("-ml-11 text-sm text-muted md:ml-0", voteError ? "mt-1" : "sr-only")}>
               {voteError ? "Couldn't save your vote - try again." : ""}
             </p>
-            {voteNote && (
+            {voteNote && persona.get("feedback") && (
               <p className="mt-1 -ml-11 text-sm text-muted md:ml-0">
                 Sorry it missed.{" "}
                 <button type="button" className="font-semibold text-fg underline-offset-4 hover:underline" onClick={() => onAsk("feedback")}>

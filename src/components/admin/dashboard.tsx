@@ -17,20 +17,24 @@ import {
   MessageSquareText,
   Monitor,
   Search,
+  Settings,
+  Sparkles,
   Star,
   ThumbsDown,
   ThumbsUp,
   Timer,
+  UserRoundPen,
   Users,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-provider";
 import { Analytics } from "./analytics";
 import type { AdminData } from "@/server/admin-view";
 import type { VisitorInfo } from "@/server/store";
-import { cn, withBase } from "@/lib/utils";
+import { cn, plain, withBase } from "@/lib/utils";
+import { getAuthClient } from "@/lib/auth-client";
 
-type Props = { data: AdminData; labels: Record<string, string> };
-type Tab = "all" | "messages" | "feedback" | "votes" | "visitors" | "analytics";
+type Props = { data: AdminData; labels: Record<string, string>; personas?: { slug: string; name: string }[]; persona?: string };
+type Tab = "all" | "messages" | "feedback" | "votes" | "ai" | "visitors" | "analytics";
 
 type Item = {
   id: string;
@@ -180,7 +184,16 @@ function buildItems(db: AdminData, labels: Record<string, string>): Item[] {
   }
   const who = (id: string) => named.get(id) ?? {};
   return [
-    ...db.contacts.map<Item>((c) => ({ id: c.id, kind: "message", at: c.createdAt, visitorId: c.visitor.visitorId, ...who(c.visitor.visitorId), title: c.company ? `Message · ${c.company}` : "Message", body: c.message })),
+    ...db.contacts.map<Item>((c) => ({
+      id: c.id,
+      kind: "message",
+      at: c.createdAt,
+      visitorId: c.visitor.visitorId,
+      ...who(c.visitor.visitorId),
+      // Access requests are answered in the persona's Studio (Document & access), where a code is made.
+      title: c.kind === "access" ? `Access request${c.relation ? ` · ${c.relation}` : ""} (${c.status})` : c.company ? `Message · ${c.company}` : "Message",
+      body: c.kind === "access" ? [c.phone && `Phone: ${c.phone}`, c.message].filter(Boolean).join("\n") : c.message,
+    })),
     ...db.feedback.map<Item>((f) => ({ id: f.id, kind: "feedback", at: f.createdAt, visitorId: f.visitor.visitorId, ...who(f.visitor.visitorId), title: "Site feedback", body: f.message, rating: f.rating })),
     ...db.votes.map<Item>((v) => ({ id: v.id, kind: "vote", at: v.updatedAt, visitorId: v.visitor.visitorId, ...who(v.visitor.visitorId), title: labels[v.intentId] ?? v.intentId, body: "", value: v.value })),
   ].sort((a, b) => b.at.localeCompare(a.at));
@@ -232,7 +245,7 @@ function useEdgeFade(ref: React.RefObject<HTMLElement | null>) {
 }
 
 // ---------- page ----------
-export function AdminDashboard({ data: db, labels }: Props) {
+export function AdminDashboard({ data: db, labels, personas = [], persona }: Props) {
   const now = useNow();
   const lastSeen = useLastSeen();
   const [tab, setTab] = useState<Tab>("all");
@@ -300,7 +313,10 @@ export function AdminDashboard({ data: db, labels }: Props) {
   const newCount = lastSeen ? items.filter((i) => i.at > lastSeen).length : items.length;
 
   const signOut = async () => {
-    await fetch(withBase("/api/admin/session/"), { method: "DELETE" }).catch(() => {});
+    // Ends this device's session (other devices stay signed in; "Sign out everywhere" is in Settings).
+    await getAuthClient()
+      .signOut()
+      .catch(() => {});
     window.location.assign(withBase("/"));
   };
 
@@ -309,6 +325,7 @@ export function AdminDashboard({ data: db, labels }: Props) {
     { id: "messages", label: "Messages", count: db.contacts.length },
     { id: "feedback", label: "Feedback", count: db.feedback.length },
     { id: "votes", label: "Votes", count: db.votes.length },
+    { id: "ai", label: "AI answers", count: db.aiAnswers.length },
     { id: "visitors", label: "Visitors", count: visitors.length },
     { id: "analytics", label: "Analytics", count: db.analytics.views },
   ];
@@ -342,6 +359,12 @@ export function AdminDashboard({ data: db, labels }: Props) {
             <span className="eyebrow ml-1 hidden rounded-md border border-line px-1.5 py-0.5 sm:inline">Private</span>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <a href={withBase("/admin/personas/")} className="icon-btn" aria-label="Personas" title="Personas: what the site knows and says">
+              <UserRoundPen className="size-[18px]" />
+            </a>
+            <a href={withBase("/admin/settings/")} className="icon-btn" aria-label="Settings" title="Settings: password, devices">
+              <Settings className="size-[18px]" />
+            </a>
             <ThemeToggle />
             <a href={withBase("/api/admin/export/")} className="btn btn-ghost py-2.5 text-sm max-sm:px-3 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Export JSON">
               <Download className="size-4" /> <span className="hidden sm:inline">Export</span>
@@ -423,7 +446,27 @@ export function AdminDashboard({ data: db, labels }: Props) {
             ))}
           </div>
           </div>
-          <label className="relative md:ml-auto md:w-80">
+          {personas.length > 1 && (
+            <div className="flex items-center gap-2 text-sm font-semibold md:ml-auto">
+              <label htmlFor="inbox-persona" className="text-muted">
+                Persona
+              </label>
+              <select
+                id="inbox-persona"
+                value={persona ?? ""}
+                onChange={(e) => window.location.assign(withBase(e.target.value ? `/admin/?persona=${encodeURIComponent(e.target.value)}` : "/admin/"))}
+                className="rounded-xl border border-line-strong bg-card px-3 py-2.5 text-sm font-medium outline-none focus:border-accent pointer-coarse:min-h-11"
+              >
+                <option value="">All</option>
+                {personas.map((p) => (
+                  <option key={p.slug} value={p.slug}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <label className={cn("relative md:w-80", personas.length > 1 ? "" : "md:ml-auto")}>
             <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-faint" />
             <input
               ref={searchRef}
@@ -448,6 +491,8 @@ export function AdminDashboard({ data: db, labels }: Props) {
           <div className={cn("min-h-0 min-w-0 border-line lg:border-r", hasDetail && "hidden lg:block")}>
             {tab === "votes" ? (
               <VotesTable db={db} labels={labels} query={needle} />
+            ) : tab === "ai" ? (
+              <AiAnswersTable db={db} labels={labels} query={needle} now={now} />
             ) : tab === "visitors" ? (
               <>
                 {/* Why this count is bigger than "Visitors who interacted": it also has people who only browsed with analytics accepted. */}
@@ -519,9 +564,13 @@ export function AdminDashboard({ data: db, labels }: Props) {
                   <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-surface text-faint">
                     <Inbox className="size-6" />
                   </span>
-                  <p className="mt-4 font-semibold">{tab === "votes" ? "Votes by answer" : "Select an item"}</p>
+                  <p className="mt-4 font-semibold">{tab === "votes" ? "Votes by answer" : tab === "ai" ? "AI answers" : "Select an item"}</p>
                   <p className="mt-1 text-sm text-muted">
-                    {tab === "votes" ? "See which answers visitors liked and which missed." : "Pick something on the left to see the person, their details and everything they did."}
+                    {tab === "votes"
+                      ? "See which answers visitors liked and which missed."
+                      : tab === "ai"
+                        ? "Questions no curated answer covered: what the AI did with each, and how visitors rated it. Frequent ones are good candidates for new curated answers."
+                        : "Pick something on the left to see the person, their details and everything they did."}
                   </p>
                 </div>
               </div>
@@ -738,6 +787,66 @@ function VotesTable({ db, labels, query }: { db: Pick<AdminData, "votes">; label
                 <ThumbsDown className="size-3.5" /> {r.down}
               </span>
             </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+const ROUTE = {
+  answer: { label: "Answered", tone: "bg-emerald-500/12 text-emerald-800 dark:text-emerald-400" },
+  topic: { label: "Routed", tone: "bg-sky-500/12 text-sky-800 dark:text-sky-400" },
+  gated: { label: "Needs access", tone: "bg-amber-500/12 text-amber-800 dark:text-amber-400" },
+  decline: { label: "Declined", tone: "bg-surface text-muted" },
+  error: { label: "Failed", tone: DOWN_TONE },
+} as const;
+
+/** Free-form questions the AI handled, newest first, with the visitors' thumbs on each answer. */
+function AiAnswersTable({ db, labels, query, now }: { db: Pick<AdminData, "aiAnswers" | "votes">; labels: Record<string, string>; query: string; now: number | null }) {
+  const votes = useMemo(() => {
+    const m = new Map<string, { up: number; down: number }>();
+    for (const v of db.votes) {
+      if (!v.answerId) continue;
+      const r = m.get(v.answerId) ?? { up: 0, down: 0 };
+      r[v.value]++;
+      m.set(v.answerId, r);
+    }
+    return m;
+  }, [db.votes]);
+  const rows = useMemo(() => [...db.aiAnswers].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [db.aiAnswers]);
+  const shown = rows.filter((a) => !query || a.question.toLowerCase().includes(query) || a.answer?.toLowerCase().includes(query));
+  if (!shown.length) return <ul><Empty query={query} /></ul>;
+  return (
+    <ul className="divide-y divide-line">
+      {shown.map((a) => {
+        const r = ROUTE[a.route];
+        const v = votes.get(a.id);
+        return (
+          <li key={a.id} className="space-y-1.5 px-4 py-3.5">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+              <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold", r.tone)}>
+                <Sparkles className="size-3" /> {r.label}
+              </span>
+              {a.route === "topic" && a.intentId && <span>to {labels[a.intentId] ?? a.intentId}</span>}
+              <span className="ml-auto tabular-nums" title={absolute(a.createdAt)}>
+                {ago(a.createdAt, now)}
+                {a.model ? ` · ${a.model}` : ""} · {(a.ms / 1000).toFixed(1)}s
+              </span>
+            </div>
+            <p className="font-semibold">{a.question}</p>
+            {a.answer && <p className="text-sm leading-relaxed text-muted">{plain(a.answer)}</p>}
+            {a.cards?.length ? <p className="text-xs text-faint">Cards: {a.cards.join(", ")}</p> : null}
+            {v && (
+              <p className="flex items-center gap-3 text-xs text-muted tabular-nums">
+                <span className="inline-flex items-center gap-1">
+                  <ThumbsUp className="size-3.5" /> {v.up}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <ThumbsDown className="size-3.5" /> {v.down}
+                </span>
+              </p>
+            )}
           </li>
         );
       })}

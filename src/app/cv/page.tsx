@@ -1,51 +1,52 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Download, Mail, MapPin, Phone } from "lucide-react";
-import { Github, Linkedin } from "@/components/brand-icons";
-import { PrintButton } from "./print-button";
-import { cv } from "@/content/cv";
-import { quotes } from "@/content/details";
+import { notFound } from "next/navigation";
+import { ArrowLeft, Download } from "lucide-react";
+import { CvSheet } from "@/components/document/cv-sheet";
+import { otherPersonaMetadata, otherPersonaPage } from "@/components/site/other-persona";
+import { PersonaShell } from "@/components/site/persona-shell";
+import { cv as codeCv } from "@/content/cv";
 import { profile } from "@/content/profile";
+import { readCv } from "@/lib/persona/cv";
+import { describe } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/site";
 import { withBase } from "@/lib/utils";
-import "./cv.css";
+import { currentPersona } from "@/server/persona/resolve";
+import { PrintButton } from "./print-button";
 
 const cvTitle = `CV - ${profile.name}`;
-const cvDescription = `${profile.name} - ${cv.title}. ${cv.profile.slice(0, 120)}…`;
 
-// A child openGraph/twitter object replaces the root layout's, so siteName and the image are repeated here.
-export const metadata: Metadata = {
-  title: "CV",
-  description: cvDescription,
-  alternates: { canonical: absoluteUrl("/cv/") },
-  openGraph: {
-    type: "profile",
-    siteName: profile.name,
-    title: cvTitle,
+export async function generateMetadata(): Promise<Metadata> {
+  const other = await otherPersonaMetadata("cv");
+  if (other) return other;
+  const cv = readCv((await currentPersona()).compiled.doc.document.data, codeCv);
+  const cvDescription = describe(`CV of ${profile.name}, ${profile.role}: ${cv.profile}`);
+  // A child openGraph/twitter object replaces the root layout's, so siteName and the image are repeated here.
+  return {
+    title: "CV",
     description: cvDescription,
-    url: absoluteUrl("/cv/"),
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: `${profile.name} - ${profile.role}` }],
-  },
-  twitter: { card: "summary_large_image", title: cvTitle, description: cvDescription, images: ["/og.png"] },
-};
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="cv-section">
-      <h2 className="cv-h2">{title}</h2>
-      {children}
-    </section>
-  );
+    alternates: { canonical: absoluteUrl("/cv/") },
+    openGraph: {
+      type: "profile",
+      siteName: profile.name,
+      title: cvTitle,
+      description: cvDescription,
+      url: absoluteUrl("/cv/"),
+      images: [{ url: "/og.png", width: 1200, height: 630, alt: `${profile.name} - ${profile.role}` }],
+    },
+    twitter: { card: "summary_large_image", title: cvTitle, description: cvDescription, images: ["/og.png"] },
+  };
 }
 
-export default function CvPage() {
-  const contacts = [
-    { icon: MapPin, label: profile.location },
-    { icon: Mail, label: profile.email, href: `mailto:${profile.email}` },
-    { icon: Phone, label: profile.phone, href: profile.phoneHref },
-    { icon: Linkedin, label: profile.links.linkedinHandle, href: profile.links.linkedin },
-    { icon: Github, label: "github.com/maruf1020", href: profile.links.github },
-  ];
+export default async function CvPage() {
+  // Another persona whose document lives at /cv/ shows it here, in its own page frame.
+  const p = await currentPersona();
+  if (!p.compiled.doc.legacy) {
+    if (p.wrongLang) notFound();
+    return <PersonaShell p={p}>{await otherPersonaPage("cv")}</PersonaShell>;
+  }
+  // The published CV (edited in the Studio), else the code content.
+  const cv = readCv(p.compiled.doc.document.data, codeCv);
 
   return (
     <div className="cv-root">
@@ -65,135 +66,7 @@ export default function CvPage() {
       </nav>
 
       <main>
-        <article className="cv-sheet">
-          <header className="cv-header">
-            {cv.showPhoto && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={withBase(cv.photo)} alt={`Photo of ${profile.name}`} width={240} height={240} className="cv-photo" />
-            )}
-            <div className="min-w-0 flex-1">
-              <h1 className="cv-name">{profile.name}</h1>
-              <p className="cv-title">{cv.title}</p>
-              <ul className="cv-contacts">
-                {contacts.map((c) => (
-                  <li key={c.label}>
-                    <c.icon className="cv-icon" aria-hidden="true" />
-                    {c.href ? <a href={c.href}>{c.label}</a> : <span>{c.label}</span>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </header>
-          <p className="cv-availability">{cv.availability}</p>
-
-          <Section title="Profile">
-            <p className="cv-text">{cv.profile}</p>
-          </Section>
-
-          <Section title="Key achievements">
-            <ul className="cv-bullets">
-              {cv.highlights.map((h) => (
-                <li key={h}>{h}</li>
-              ))}
-            </ul>
-          </Section>
-
-          <Section title="Core skills">
-            <dl className="cv-skills">
-              {cv.skills.map((s) => (
-                <div key={s.k} className="cv-skill">
-                  <dt>{s.k}</dt>
-                  <dd>{s.v}</dd>
-                </div>
-              ))}
-            </dl>
-          </Section>
-
-          <Section title="Professional experience">
-            <div className="cv-jobs">
-              {cv.experience.map((job) => (
-                <div key={job.company} className="cv-job">
-                  <div className="cv-row">
-                    <h3 className="cv-h3">
-                      {job.role} <span className="cv-at">· {job.company}</span>
-                    </h3>
-                    <span className="cv-date">{job.period}</span>
-                  </div>
-                  <p className="cv-meta">
-                    {job.location}
-                    {job.context ? ` · ${job.context}` : ""}
-                  </p>
-                  <ul className="cv-bullets">
-                    {job.bullets.map((b) => (
-                      <li key={b}>{b}</li>
-                    ))}
-                  </ul>
-                  {job.engagements.map((e) => (
-                    <div key={e.title} className="cv-engagement">
-                      <div className="cv-row">
-                        <h4 className="cv-h4">{e.title}</h4>
-                        <span className="cv-date">{e.period}</span>
-                      </div>
-                      <ul className="cv-bullets">
-                        {e.bullets.map((b) => (
-                          <li key={b}>{b}</li>
-                        ))}
-                      </ul>
-                      <p className="cv-stack">
-                        <span>Stack:</span> {e.stack}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </Section>
-
-          <Section title="Selected projects">
-            <ul className="cv-bullets cv-projects">
-              {cv.projects.map((p) => (
-                <li key={p.name}>
-                  <strong>{p.name}</strong> <span className="cv-faint">({p.meta})</span> - {p.text}
-                </li>
-              ))}
-            </ul>
-          </Section>
-
-          <div className="cv-two">
-            <Section title="Education">
-              <div className="cv-avoid">
-                <div className="cv-row">
-                  <h3 className="cv-h4">{cv.education.degree}</h3>
-                  <span className="cv-date">{cv.education.year}</span>
-                </div>
-                <p className="cv-meta">{cv.education.school}</p>
-                <p className="cv-text">{cv.education.note}</p>
-                <p className="cv-stack">
-                  <span>Courses:</span> {cv.courses.join(", ")}
-                </p>
-              </div>
-            </Section>
-
-            <Section title="Languages">
-              <ul className="cv-langs">
-                {cv.languages.map((l) => (
-                  <li key={l.name}>
-                    <span className="font-semibold">{l.name}</span>
-                    <span>{l.level}</span>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          </div>
-
-          <Section title="References">
-            <p className="cv-text">
-              {quotes.length} recommendations from managers, clients and colleagues on{" "}
-              <a href={profile.links.linkedinRecommendations}>LinkedIn (linkedin.com/in/marufbillah1020)</a>. References available on
-              request.
-            </p>
-          </Section>
-        </article>
+        <CvSheet cv={cv} />
       </main>
     </div>
   );

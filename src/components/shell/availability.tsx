@@ -1,14 +1,18 @@
 "use client";
 
+import { usePersona } from "@/lib/persona/context";
 import { cn } from "@/lib/utils";
 
-/** Live availability badge. Click = "Hire me". */
-export function Availability({ onClick, className }: { onClick: () => void; className?: string }) {
+/** Live availability badge ("Open to new roles", "Looking for a partner"). Click = the persona's chosen answer. */
+export function Availability({ onClick, className }: { onClick?: () => void; className?: string }) {
+  const { labels } = usePersona();
+  // "Open to [new ]roles": the bracketed words are dropped on narrow screens.
+  const parts = labels.availability.split(/(\[[^\]]*\])/).filter(Boolean);
   return (
     <button
       type="button"
       onClick={onClick}
-      title="I'm open to new roles - click to see how to hire me"
+      title={labels.availabilityTitle}
       className={cn(
         // Under 390px the top bar has no room for the words: the dot stays, the label goes to screen readers only.
         "flex shrink-0 items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm transition-colors hover:border-surface-strong hover:bg-surface pointer-coarse:min-h-11 max-[389px]:min-w-11 max-[389px]:justify-center",
@@ -20,7 +24,15 @@ export function Availability({ onClick, className }: { onClick: () => void; clas
         <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
       </span>
       <span className="font-semibold whitespace-nowrap max-[389px]:sr-only">
-        Open to <span className="hidden sm:inline">new </span>roles
+        {parts.map((p, i) =>
+          p.startsWith("[") ? (
+            <span key={i} className="hidden sm:inline">
+              {p.slice(1, -1)}
+            </span>
+          ) : (
+            p
+          ),
+        )}
       </span>
     </button>
   );

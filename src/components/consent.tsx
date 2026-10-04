@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
  * While no choice is made it never blocks the page: "How I use data" (or the Privacy answer being on screen,
  * where the same Accept/Reject live) folds it into a small pill, without storing anything.
  */
-export function ConsentBanner({ onLearnMore, hidden = false }: { onLearnMore: () => void; hidden?: boolean }) {
+export function ConsentBanner({ onLearnMore, hidden = false }: { onLearnMore?: () => void; hidden?: boolean }) {
   const consent = useConsent();
   const [collapsed, setCollapsed] = useState(false);
   // Publishes the banner's height as --consent-h so the chat can add that much room at the end of the log.
@@ -119,6 +119,7 @@ export function ConsentBanner({ onLearnMore, hidden = false }: { onLearnMore: ()
               <button type="button" onClick={() => choose("denied")} className="btn btn-ghost bg-card py-2.5 text-sm max-sm:px-3.5 pointer-coarse:min-h-11">
                 Reject
               </button>
+              {onLearnMore && (
               <button
                 type="button"
                 onClick={() => {
@@ -130,6 +131,7 @@ export function ConsentBanner({ onLearnMore, hidden = false }: { onLearnMore: ()
               >
                 How I use data
               </button>
+              )}
             </div>
           </motion.div>
         )}
@@ -145,6 +147,7 @@ export function PrivacyChoice() {
     { k: "Always, anonymously", v: "Which pages are opened and which questions are asked - no id, no device details." },
     { k: "Only if you accept", v: "Browser, OS, screen and window size, timezone, language, colour scheme, touch support, the page you came from and campaign link, visit count." },
     { k: "Only if you send it", v: "Messages, feedback and thumbs up/down you choose to send, with the details you type in." },
+    { k: "Only if you ask it", v: "A question none of my listed answers covers is sent, with the last few turns of this chat, to Google's Gemini API to write an answer from my CV. The question and answer are kept so I can improve the site; no device details go with them." },
     { k: "Never", v: "Ads, third-party trackers, selling data, or your IP address." },
   ];
   return (

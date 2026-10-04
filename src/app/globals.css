@@ -76,9 +76,10 @@
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-on-accent: var(--on-accent);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Bangla text falls through to Noto Sans Bengali (only downloaded when a page has Bangla). */
+  --font-sans: var(--font-geist-sans), var(--font-bengali), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --font-serif: var(--font-instrument), Georgia, serif;
+  --font-serif: var(--font-instrument), var(--font-bengali), Georgia, serif;
 }
 
 /* Everything clickable gets a pointer (Tailwind v4 resets buttons to the default cursor). */
@@ -410,4 +411,14 @@ details > summary::-webkit-details-marker {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Bangla needs taller lines than Latin text: vowel signs sit above and below the letters. */
+:lang(bn) {
+  line-height: 1.75;
+}
+:lang(bn) .display,
+:lang(bn) .intro {
+  line-height: 1.3;
+  letter-spacing: 0;
 }

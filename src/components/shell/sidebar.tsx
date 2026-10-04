@@ -1,12 +1,12 @@
 "use client";
 
+import { IntentLink } from "@/components/chat/intent-link";
 import { motion } from "motion/react";
 import { PanelLeftClose, PanelLeftOpen, SquarePen, X } from "lucide-react";
 import { Github, Linkedin } from "@/components/brand-icons";
 import { Avatar } from "@/components/photo-viewer";
-import { primaryIntents } from "@/content/intents";
-import { profile } from "@/content/profile";
-import { projects } from "@/content/projects";
+import { usePersona } from "@/lib/persona/context";
+import { iconFor } from "@/lib/persona/icons";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -28,6 +28,10 @@ const RailTip = ({ children }: { children: React.ReactNode }) => (
 );
 
 export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collapsed = false }: Props) {
+  const persona = usePersona();
+  const { identity } = persona;
+  const github = identity.links.find((l) => l.kind === "github");
+  const linkedin = identity.links.find((l) => l.kind === "linkedin");
   const rail = variant === "desktop" && collapsed;
   // Drawer rows are finger-sized (44px+); the desktop list stays compact.
   const rowPad = variant === "drawer" ? "py-2.5" : "py-2";
@@ -36,9 +40,9 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
     const active = activeIntent === id;
     return (
       <li key={id}>
-        <button
-          type="button"
-          onClick={() => onAsk(id)}
+        <IntentLink
+          intentId={id}
+          onPick={onAsk}
           aria-current={active ? "true" : undefined}
           aria-label={rail ? label : undefined}
           className={cn(
@@ -58,7 +62,7 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
           {!active && <span className="absolute inset-0 rounded-xl transition-colors group-hover:bg-surface/70" />}
           {Icon && <Icon className="relative size-[18px] shrink-0" />}
           {rail ? <RailTip>{label}</RailTip> : <span className="relative truncate">{label}</span>}
-        </button>
+        </IntentLink>
       </li>
     );
   };
@@ -72,7 +76,7 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
           <Avatar size={34} />
           {!rail && (
             <button type="button" onClick={onNew} className="rounded-lg px-1 text-[17px] font-semibold tracking-tight pointer-coarse:min-h-11 pointer-coarse:min-w-11">
-              {profile.shortName}
+              {identity.shortName}
             </button>
           )}
         </div>
@@ -92,7 +96,7 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
         <button
           type="button"
           onClick={onNew}
-          aria-label={rail ? "New chat" : undefined}
+          aria-label={rail ? persona.labels.newChat : undefined}
           className={cn(
             "side-row group relative flex w-full items-center gap-3 rounded-xl text-[15px] font-semibold transition-colors hover:bg-surface",
             rowPad,
@@ -100,19 +104,25 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
           )}
         >
           <SquarePen className="size-[18px]" />
-          {rail ? <RailTip>New chat</RailTip> : "New chat"}
+          {rail ? <RailTip>{persona.labels.newChat}</RailTip> : persona.labels.newChat}
         </button>
       </div>
 
       {/* Touch rail rows are 44px, so on short tablets the rail scrolls instead of pushing the footer off screen. */}
       <div className={cn("mt-4 flex-1 pb-4", rail ? "no-scrollbar min-h-0 overflow-visible px-2 pointer-coarse:overflow-y-auto" : "no-scrollbar overflow-y-auto px-3")}>
-        {!rail && <div className="eyebrow px-3 pb-2">Ask about</div>}
-        <ul className="space-y-1">{primaryIntents.map((i) => item(i.id, i.label, i.icon))}</ul>
-        {!rail && (
-          <>
-            <div className="eyebrow mt-6 px-3 pb-2">Projects</div>
-            <ul className="space-y-1">{projects.map((p) => item(`project-${p.id}`, p.name))}</ul>
-          </>
+        {/* The first group is the main topics (also the icon rail); the rest only show when the panel is open. */}
+        {persona.sidebar.map((group, gi) =>
+          rail && gi > 0 ? null : (
+            <div key={group.title}>
+              {!rail && <div className={cn("eyebrow px-3 pb-2", gi > 0 && "mt-6")}>{group.title}</div>}
+              <ul className="space-y-1">
+                {group.ids.map((id) => {
+                  const q = persona.get(id);
+                  return q ? item(q.id, q.label, group.icons || rail ? iconFor(q.icon) : undefined) : null;
+                })}
+              </ul>
+            </div>
+          ),
         )}
       </div>
 
@@ -122,13 +132,17 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
         {!rail && (
           <>
             {/* The narrow phone drawer shows the short name (as in its header), so it is never cut off. */}
-            <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{variant === "drawer" ? profile.shortName : profile.name}</span>
-            <a href={profile.links.github} target="_blank" rel="noreferrer" className="icon-btn size-8" aria-label="GitHub">
-              <Github className="size-4" />
-            </a>
-            <a href={profile.links.linkedin} target="_blank" rel="noreferrer" className="icon-btn size-8" aria-label="LinkedIn">
-              <Linkedin className="size-4" />
-            </a>
+            <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{variant === "drawer" ? identity.shortName : identity.name}</span>
+            {github && (
+              <a href={github.href} target="_blank" rel="noreferrer" className="icon-btn size-8" aria-label={github.label}>
+                <Github className="size-4" />
+              </a>
+            )}
+            {linkedin && (
+              <a href={linkedin.href} target="_blank" rel="noreferrer" className="icon-btn size-8" aria-label={linkedin.label}>
+                <Linkedin className="size-4" />
+              </a>
+            )}
           </>
         )}
       </div>

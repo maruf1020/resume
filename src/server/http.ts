@@ -11,10 +11,24 @@ export const bad = (error: string, status = 400) => json({ ok: false, error }, s
 export const forbidden = () => bad("Forbidden.", 403);
 
 /**
+ * Cookies this app sets itself (draft preview, unlocked details) are Secure whenever the site's
+ * configured URL is https, the same rule Better Auth uses for the admin cookies. A plain http URL
+ * (local tests) leaves them non-Secure so the browser keeps them.
+ */
+export const secureCookies = () => /^https:\/\//i.test(process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || "");
+
+/** A Set-Cookie header value. `maxAge` 0 deletes the cookie. */
+export function cookieHeader(name: string, value: string, opts: { maxAge: number; sameSite?: "Strict" | "Lax"; path?: string }): string {
+  const parts = [`${name}=${encodeURIComponent(value)}`, `Path=${opts.path ?? "/"}`, `Max-Age=${Math.max(0, Math.floor(opts.maxAge))}`, "HttpOnly", `SameSite=${opts.sameSite ?? "Lax"}`];
+  if (secureCookies()) parts.push("Secure");
+  return parts.join("; ");
+}
+
+/**
  * How many reverse proxies in front of the app may be trusted to set client-address headers.
  * 0 (the default) ignores X-Forwarded-For and X-Real-IP entirely, because a visitor can send any value.
  */
-const trustedHops = () => {
+export const trustedHops = () => {
   const n = Number(process.env.TRUST_PROXY_HOPS ?? 0);
   return Number.isInteger(n) && n > 0 ? Math.min(n, 10) : 0;
 };
