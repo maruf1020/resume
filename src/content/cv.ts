@@ -92,15 +92,15 @@ export const cv = {
       ],
     },
     {
-      company: "Goodfellas Limited (Walton)",
+      company: "Travel and hospitality group (confidential)",
       role: "Lead Full-Stack Engineer",
-      period: "2026",
+      period: "2024 - Present",
       location: "Remote",
       context: "Travel and hospitality group.",
       bullets: [
         "Designed and built the API for a 9-vertical travel super-app as a NestJS modular monolith: 70 data models, ~236 endpoints and ~550 unit tests.",
         "Built a double-entry ledger and wallet with row-locked balance checks and an idempotent checkout saga with compensation, so multi-supplier orders recover after a crash.",
-        "Added resilient supplier integrations (circuit breakers, backoff), a 75-page React app, EC2 deploys that snapshot the database before migrating, and the group's website, walton.us.",
+        "Added resilient supplier integrations (circuit breakers, backoff), a 75-page React app, EC2 deploys that snapshot the database before migrating, and the group's corporate website.",
       ],
       engagements: [],
     },

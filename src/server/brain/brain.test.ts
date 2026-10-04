@@ -23,9 +23,9 @@ describe("the brain of the job persona", () => {
 
   it("lists every topic and the job's cards", () => {
     expect(brain.public.topicIds.has("about")).toBe(true);
-    expect(brain.public.topicIds.has("project-walton")).toBe(true);
+    expect(brain.public.topicIds.has("project-travel-super-app")).toBe(true);
     expect(brain.public.cards.has("skills")).toBe(true);
-    expect(brain.public.cards.has("project:walton")).toBe(true);
+    expect(brain.public.cards.has("project:travel-super-app")).toBe(true);
     expect(brain.public.cards.has("section:experience")).toBe(true);
   });
 

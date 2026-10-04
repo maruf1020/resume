@@ -109,7 +109,7 @@ export type AiAnswerEntry = {
   /** The curated topic it was routed to. */
   intentId?: string;
   answer?: string;
-  /** Cards attached to the answer, e.g. "skills" or "project:walton". */
+  /** Cards attached to the answer, e.g. "skills" or "project:ai-job-finder". */
   cards?: string[];
   model?: string;
   ms: number;

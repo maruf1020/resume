@@ -31,9 +31,9 @@ export const projects: Project[] = [
     stack: ["Next.js 16", "React 19", "Prisma 7", "PostgreSQL", "pg-boss", "Gemini", "Gmail API", "Playwright", "Docker"],
   },
   {
-    id: "walton",
+    id: "travel-super-app",
     name: "Travel Super-App",
-    year: "2026",
+    year: "2024 - Present",
     kind: "Work",
     tagline: "Nine travel verticals on one platform, with a double-entry wallet and a crash-safe checkout.",
     problem:
@@ -48,7 +48,6 @@ export const projects: Project[] = [
     ],
     numbers: ["~57k lines API + ~58k lines web", "70 data models", "~550 unit tests", "100% of commits"],
     stack: ["NestJS 11", "Prisma", "PostgreSQL", "BullMQ", "Socket.IO", "React", "Tailwind", "Google Maps", "AWS EC2"],
-    link: { label: "walton.us (group website)", href: "https://walton.us" },
   },
   {
     id: "qa-analytics",

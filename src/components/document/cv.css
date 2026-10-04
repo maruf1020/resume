@@ -179,6 +179,22 @@
     min-height: 32px;
   }
 }
+/* Phones (screen only, so print and the PDF keep the side-by-side header): photo on top, centred. */
+@media screen and (max-width: 640px) {
+  .cv-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+  }
+  .cv-photo {
+    width: 96px;
+    height: 96px;
+  }
+  .cv-contacts {
+    justify-content: center;
+  }
+}
 .cv-icon {
   width: 10px;
   height: 10px;

@@ -65,10 +65,10 @@ const base: Intent[] = [
     prompt: "Walk me through your experience.",
     icon: Briefcase,
     primary: true,
-    keywords: ["experience", "work", "job", "career", "history", "company", "employer", "luxury", "agency", "retail", "echologyx", "nexkraft", "goodfellas", "walton", "timeline"],
+    keywords: ["experience", "work", "job", "career", "history", "company", "employer", "luxury", "agency", "retail", "echologyx", "nexkraft", "travel", "timeline"],
     answers: [
-      "Here's my career so far. Most of it is at **Echologyx**, where I grew into Lead Software Engineer and worked on long client engagements - a global luxury group in France, a European CRO agency and a UK retail group - alongside our own HR system. In 2026 I also built a travel super-app for **Goodfellas Limited**.",
-      "Three companies, many products. At **Echologyx** I lead a team of 10 and have worked for a global luxury group, a European CRO agency and a UK retail group. In 2026 I also built a travel super-app for **Goodfellas Limited**, and before all that I built Android apps at Nexkraft.",
+      "Here's my career so far. Most of it is at **Echologyx**, where I grew into Lead Software Engineer and worked on long client engagements - a global luxury group in France, a European CRO agency and a UK retail group - alongside our own HR system. Since 2024 I've also been building a travel super-app for a travel and hospitality group.",
+      "Three companies, many products. At **Echologyx** I lead a team of 10 and have worked for a global luxury group, a European CRO agency and a UK retail group. Since 2024 I've also been building a travel super-app for a travel and hospitality group, and before all that I built Android apps at Nexkraft.",
     ],
     blocks: [{ kind: "experience" }],
     followUps: ["projects", "skills", "recommendations"],
@@ -85,7 +85,7 @@ const base: Intent[] = [
       "Here's what I've built. The **travel super-app** and the **QA analytics platform** are my biggest back ends; **ABTestLab** is the one my whole company now uses. Tap a card for details.",
     ],
     blocks: [{ kind: "projects" }],
-    followUps: ["project-walton", "project-qa-analytics", "project-ai-job-finder"],
+    followUps: ["project-travel-super-app", "project-qa-analytics", "project-ai-job-finder"],
   },
   {
     id: "skills",
@@ -172,9 +172,9 @@ const base: Intent[] = [
     icon: Zap,
     keywords: ["now", "current", "currently", "working", "building", "latest", "today"],
     answers: [
-      "Right now I lead my team at Echologyx. Alongside that I'm building a **travel super-app** for Goodfellas Limited (wallet ledger, checkout saga, nine travel verticals) and **AI Job Finder**, my own project.",
+      "Right now I lead my team at Echologyx. Alongside that I'm building a **travel super-app** for a travel and hospitality group (wallet ledger, checkout saga, nine travel verticals) and **AI Job Finder**, my own project.",
     ],
-    blocks: [{ kind: "project", id: "walton" }, { kind: "project", id: "ai-job-finder" }],
+    blocks: [{ kind: "project", id: "travel-super-app" }, { kind: "project", id: "ai-job-finder" }],
     followUps: ["projects", "experience", "hire"],
   },
   {

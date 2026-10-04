@@ -95,17 +95,17 @@ export const experience: Job[] = [
     ],
   },
   {
-    company: "Goodfellas Limited",
+    company: "Travel and hospitality group (confidential)",
     role: "Lead Full-Stack Engineer",
-    period: "2026",
+    period: "2024 - Present",
     location: "Remote",
-    context: "Walton - travel and hospitality group",
+    context: "Travel and hospitality group",
     bullets: [
       "Designed and built the API for a 9-vertical travel super-app (luggage storage, hotels, flights, parking, transfers and more) as a NestJS modular monolith: 70 data models, ~236 endpoints, ~550 unit tests.",
       "Built a double-entry ledger and wallet with row-locked balance checks, and a persisted, idempotent checkout saga with compensation, so multi-supplier orders stay consistent and recover after a crash.",
       "Built resilient supplier integrations (Duffel flights) with circuit breakers and retry with backoff, geo \"near me\" discovery, and GitHub Actions deploys to AWS EC2 that snapshot the database before migrating.",
       "Built the React web app (75 pages) with consoles for travellers, partners and admins, Google Maps search, live order tracking over WebSockets and QR booking passes.",
-      "Shipped the group's corporate website (walton.us) with GSAP and Lottie motion and continuous deployment to cPanel behind Cloudflare.",
+      "Shipped the group's corporate website with GSAP and Lottie motion and continuous deployment to cPanel behind Cloudflare.",
     ],
   },
   {

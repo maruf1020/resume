@@ -73,6 +73,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // Android: the on-screen keyboard shrinks the page, so the chat's question box stays visible (iOS: use-visible-height.ts).
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f6f4ef" },
     { media: "(prefers-color-scheme: dark)", color: "#1a1a1c" },
