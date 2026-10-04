@@ -182,6 +182,8 @@ export function clientView(c: CompiledPersona, tier: Tier, lang: Lang): ClientPe
     identity: {
       name: doc.identity.name,
       shortName: doc.identity.shortName,
+      ...(doc.identity.givenName ? { givenName: doc.identity.givenName } : {}),
+      ...(doc.identity.familyName ? { familyName: doc.identity.familyName } : {}),
       initials: doc.identity.initials,
       role: doc.identity.role === undefined ? undefined : lt(doc.identity.role, lang),
       location: doc.identity.location === undefined ? undefined : lt(doc.identity.location, lang),
