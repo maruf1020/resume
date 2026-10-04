@@ -34,6 +34,9 @@ export const profile = {
   phoneHref: "tel:+8801675708783",
   links: {
     github: "https://github.com/maruf1020",
+    facebook: "https://www.facebook.com/marufbillah1020/",
+    instagram: "https://www.instagram.com/marufbillah1020/",
+    whatsapp: "https://wa.me/8801675708783",
     linkedin: "https://www.linkedin.com/in/marufbillah1020/",
     linkedinHandle: "linkedin.com/in/marufbillah1020",
     /** Every recommendation below is on this one LinkedIn page. */

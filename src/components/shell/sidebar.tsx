@@ -3,7 +3,7 @@
 import { IntentLink } from "@/components/chat/intent-link";
 import { motion } from "motion/react";
 import { PanelLeftClose, PanelLeftOpen, SquarePen, X } from "lucide-react";
-import { Github, Linkedin } from "@/components/brand-icons";
+import { Facebook, Github, Instagram, Linkedin, Whatsapp } from "@/components/brand-icons";
 import { Avatar } from "@/components/photo-viewer";
 import { usePersona } from "@/lib/persona/context";
 import { iconFor } from "@/lib/persona/icons";
@@ -30,8 +30,14 @@ const RailTip = ({ children }: { children: React.ReactNode }) => (
 export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collapsed = false }: Props) {
   const persona = usePersona();
   const { identity } = persona;
-  const github = identity.links.find((l) => l.kind === "github");
-  const linkedin = identity.links.find((l) => l.kind === "linkedin");
+  // Profile links in the footer, in this order (whichever the persona has).
+  const SOCIAL = { github: Github, linkedin: Linkedin, facebook: Facebook, instagram: Instagram, whatsapp: Whatsapp } as const;
+  const socials = (Object.keys(SOCIAL) as (keyof typeof SOCIAL)[]).flatMap((kind) => {
+    const link = identity.links.find((l) => l.kind === kind);
+    return link ? [{ ...link, Icon: SOCIAL[kind] }] : [];
+  });
+  // "Maruf Billah": given + family name when known (the full name may carry a prefix), else the full name.
+  const displayName = [identity.givenName, identity.familyName].filter(Boolean).join(" ") || identity.name;
   const rail = variant === "desktop" && collapsed;
   // Drawer rows are finger-sized (44px+); the desktop list stays compact.
   const rowPad = variant === "drawer" ? "py-2.5" : "py-2";
@@ -76,7 +82,7 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
           <Avatar size={34} />
           {!rail && (
             <button type="button" onClick={onNew} className="rounded-lg px-1 text-[17px] font-semibold tracking-tight pointer-coarse:min-h-11 pointer-coarse:min-w-11">
-              {identity.shortName}
+              {displayName}
             </button>
           )}
         </div>
@@ -126,24 +132,16 @@ export function Sidebar({ activeIntent, onAsk, onNew, onToggle, variant, collaps
         )}
       </div>
 
-      {/* One-row footer: who this is, plus profile links. */}
-      <div className={cn("flex items-center gap-2 border-t border-line py-2.5", rail ? "justify-center px-2" : "px-3")}>
-        <Avatar size={32} />
-        {!rail && (
-          <>
-            {/* The narrow phone drawer shows the short name (as in its header), so it is never cut off. */}
-            <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{variant === "drawer" ? identity.shortName : identity.name}</span>
-            {github && (
-              <a href={github.href} target="_blank" rel="noreferrer" className="icon-btn size-8" aria-label={github.label}>
-                <Github className="size-4" />
-              </a>
-            )}
-            {linkedin && (
-              <a href={linkedin.href} target="_blank" rel="noreferrer" className="icon-btn size-8" aria-label={linkedin.label}>
-                <Linkedin className="size-4" />
-              </a>
-            )}
-          </>
+      {/* Footer: profile links (the header already shows who this is). The slim rail keeps just the avatar. */}
+      <div className={cn("flex items-center border-t border-line py-2.5", rail ? "justify-center px-2" : "justify-between px-4")}>
+        {rail ? (
+          <Avatar size={32} />
+        ) : (
+          socials.map(({ kind, href, label, Icon }) => (
+            <a key={kind} href={href} target="_blank" rel="noreferrer me" className="icon-btn size-9" aria-label={label} title={label}>
+              <Icon className="size-[18px]" />
+            </a>
+          ))
         )}
       </div>
     </nav>

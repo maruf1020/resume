@@ -93,6 +93,8 @@ export type ClientPersona = {
   identity: {
     name: string;
     shortName: string;
+    givenName?: string;
+    familyName?: string;
     initials: string;
     role?: string;
     location?: string;

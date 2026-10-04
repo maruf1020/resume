@@ -137,7 +137,7 @@ export const PersonaDocShape = z.object({
     email: z.string().max(200).optional(),
     phone: z.string().max(40).optional(),
     links: z
-      .array(z.object({ kind: z.enum(["github", "linkedin", "website", "facebook", "instagram", "x", "other"]), label: z.string().max(80), href: z.string().url("Use a full address starting with https://").max(400) }))
+      .array(z.object({ kind: z.enum(["github", "linkedin", "website", "facebook", "instagram", "whatsapp", "x", "other"]), label: z.string().max(80), href: z.string().url("Use a full address starting with https://").max(400) }))
       .max(12)
       .default([]),
     avatar: z.object({ src: z.string().max(400), alt: LTextSchema }).optional(),
