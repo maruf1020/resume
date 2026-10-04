@@ -5,13 +5,16 @@ import { profile } from "@/content/profile";
 import { projects } from "@/content/projects";
 import { breadcrumbLd, describe, graph, pageMetadata, PERSON_ID, webPageLd } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/site";
+import { otherPersonaMetadata, otherPersonaPage } from "@/components/site/other-persona";
 
 const PATH = "/projects/";
 const TITLE = "Projects";
 const INTRO = "Client platforms, company products, open source and personal builds - each with the problem, what I built, the numbers and the stack.";
 const DESCRIPTION = describe(`Projects by ${profile.name}: ${projects.slice(0, 4).map((p) => p.name).join(", ")} and more. ${INTRO}`);
 
-export const metadata = pageMetadata({ path: PATH, title: TITLE, description: DESCRIPTION });
+export async function generateMetadata() {
+  return (await otherPersonaMetadata("projects")) ?? pageMetadata({ path: PATH, title: TITLE, description: DESCRIPTION });
+}
 
 const trail = [
   { name: "Home", path: "/" },
@@ -25,7 +28,9 @@ const itemList = {
   itemListElement: projects.map((p, i) => ({ "@type": "ListItem", position: i + 1, url: absoluteUrl(`/projects/${p.id}/`), name: p.name })),
 };
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const other = await otherPersonaPage("projects");
+  if (other) return other;
   return (
     <>
       <JsonLd data={graph(webPageLd(PATH, `Projects - ${profile.name}`, DESCRIPTION), breadcrumbLd(trail), itemList)} />

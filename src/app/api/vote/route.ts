@@ -1,5 +1,6 @@
-import { getIntent } from "@/content/intents";
 import { bad, clientKey, consentedVisitor, forbidden, json, limited, readJson, sameOrigin, str } from "@/server/http";
+import { questionVisible } from "@/server/persona/compile";
+import { personaForRequest } from "@/server/persona/resolve";
 import { castVote } from "@/server/store";
 
 /** One vote per visitor per answer wording. value null removes the vote. */
@@ -16,12 +17,14 @@ export async function POST(req: Request) {
   const variant = typeof body.variant === "number" && Number.isInteger(body.variant) && body.variant >= 0 && body.variant < 100 ? body.variant : -1;
   const value = body.value === "up" || body.value === "down" ? body.value : body.value === null ? null : undefined;
   if (!visitor) return bad("Missing visitor id.");
-  if (!getIntent(intentId) && intentId !== "fallback" && !(intentId === "ai" && answerId)) return bad("Unknown answer.");
+  const { compiled, tier, preview } = await personaForRequest(req);
+  if (preview) return json({ ok: true, value });
+  if (!questionVisible(compiled, intentId, tier) && intentId !== "fallback" && !(intentId === "ai" && answerId)) return bad("Unknown answer.");
   if (variant < 0 || value === undefined) return bad("Invalid vote.");
 
   let result: boolean;
   try {
-    result = await castVote({ visitor, intentId, variant, answerId, value });
+    result = await castVote({ persona: compiled.slug, visitor, intentId, variant, answerId, value });
   } catch (err) {
     console.error("[vote] Could not save:", err);
     return bad("Could not save right now.", 503);

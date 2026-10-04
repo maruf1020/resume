@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
  * While no choice is made it never blocks the page: "How I use data" (or the Privacy answer being on screen,
  * where the same Accept/Reject live) folds it into a small pill, without storing anything.
  */
-export function ConsentBanner({ onLearnMore, hidden = false }: { onLearnMore: () => void; hidden?: boolean }) {
+export function ConsentBanner({ onLearnMore, hidden = false }: { onLearnMore?: () => void; hidden?: boolean }) {
   const consent = useConsent();
   const [collapsed, setCollapsed] = useState(false);
   // Publishes the banner's height as --consent-h so the chat can add that much room at the end of the log.
@@ -119,6 +119,7 @@ export function ConsentBanner({ onLearnMore, hidden = false }: { onLearnMore: ()
               <button type="button" onClick={() => choose("denied")} className="btn btn-ghost bg-card py-2.5 text-sm max-sm:px-3.5 pointer-coarse:min-h-11">
                 Reject
               </button>
+              {onLearnMore && (
               <button
                 type="button"
                 onClick={() => {
@@ -130,6 +131,7 @@ export function ConsentBanner({ onLearnMore, hidden = false }: { onLearnMore: ()
               >
                 How I use data
               </button>
+              )}
             </div>
           </motion.div>
         )}

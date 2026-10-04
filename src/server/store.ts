@@ -29,16 +29,28 @@ export type VisitorInfo = {
 export type ContactEntry = {
   id: string;
   createdAt: string;
+  /** Which persona's site it came from ("job" for everything before personas). */
+  persona: string;
+  /** "access": a request to see a persona's private details. */
+  kind: "contact" | "access";
+  status: "new" | "approved" | "declined";
   visitor: VisitorInfo;
   name: string;
-  email: string;
+  /** Missing only on access requests that left a phone number instead. */
+  email?: string;
+  phone?: string;
+  /** Access requests: how they know the person ("father of ...", "via aunt"). */
+  relation?: string;
   company?: string;
   message: string;
+  /** The access code issued when the request was approved. */
+  codeId?: string;
 };
 
 export type FeedbackEntry = {
   id: string;
   createdAt: string;
+  persona: string;
   visitor: VisitorInfo;
   rating: number | null;
   message: string;
@@ -50,6 +62,7 @@ export type VoteEntry = {
   id: string;
   createdAt: string;
   updatedAt: string;
+  persona: string;
   visitor: VisitorInfo;
   intentId: string;
   variant: number;
@@ -62,6 +75,7 @@ export type VoteEntry = {
 export type EventEntry = {
   id: string;
   at: string;
+  persona: string;
   type: "pageview" | "ask";
   intentId?: string;
   path?: string;
@@ -73,10 +87,25 @@ export type EventEntry = {
 export type AiAnswerEntry = {
   id: string;
   createdAt: string;
+  persona: string;
+  /** The published version that answered (missing for the code-built job persona). */
+  versionId?: string;
+  /** What the visitor could see: "unlocked" after an access code. */
+  tier: "public" | "unlocked";
+  lang?: string;
   /** Anonymous id (device details only with consent); missing when the browser sent none. */
   visitor?: VisitorInfo;
   question: string;
-  route: "topic" | "answer" | "decline" | "error";
+  route: "topic" | "answer" | "gated" | "decline" | "error";
+  /** Why it declined: off-topic, the fact is missing ("missing-fact": worth adding), or unsafe. */
+  declineReason?: "off-topic" | "missing-fact" | "unsafe";
+  confidence?: "high" | "low";
+  /** Knowledge items the answer drew on (retrieval mode). */
+  retrieved?: string[];
+  flags?: { leak?: boolean; hedged?: boolean; injection?: boolean; gatedSection?: string };
+  usage?: { input?: number; output?: number; cached?: number };
+  reviewedAt?: string;
+  promotedTo?: string;
   /** The curated topic it was routed to. */
   intentId?: string;
   answer?: string;
@@ -111,13 +140,17 @@ async function count(table: "contacts" | "feedback" | "votes"): Promise<number> 
 }
 
 /** False when the list is full. */
-export async function addContact(e: Omit<ContactEntry, "id" | "createdAt">): Promise<boolean> {
+export async function addContact(e: Omit<ContactEntry, "id" | "createdAt" | "kind" | "status" | "codeId"> & { kind?: ContactEntry["kind"] }): Promise<boolean> {
   if ((await count("contacts")) >= MAX_ENTRIES) return false;
-  await query("INSERT INTO contacts (id, visitor, name, email, company, message) VALUES ($1, $2, $3, $4, $5, $6)", [
+  await query("INSERT INTO contacts (id, persona, kind, visitor, name, email, phone, relation, company, message) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", [
     randomUUID(),
+    e.persona,
+    e.kind ?? "contact",
     e.visitor,
     e.name,
-    e.email,
+    e.email ?? null,
+    e.phone ?? null,
+    e.relation ?? null,
     e.company ?? null,
     e.message,
   ]);
@@ -127,8 +160,9 @@ export async function addContact(e: Omit<ContactEntry, "id" | "createdAt">): Pro
 /** False when the list is full. */
 export async function addFeedback(e: Omit<FeedbackEntry, "id" | "createdAt">): Promise<boolean> {
   if ((await count("feedback")) >= MAX_ENTRIES) return false;
-  await query("INSERT INTO feedback (id, visitor, rating, message, name, email) VALUES ($1, $2, $3, $4, $5, $6)", [
+  await query("INSERT INTO feedback (id, persona, visitor, rating, message, name, email) VALUES ($1, $2, $3, $4, $5, $6, $7)", [
     randomUUID(),
+    e.persona,
     e.visitor,
     e.rating,
     e.message,
@@ -142,24 +176,23 @@ export async function addFeedback(e: Omit<FeedbackEntry, "id" | "createdAt">): P
  * One vote per visitor per answer (a curated wording, or one AI answer). Voting again changes it,
  * `value: null` removes it. False only when the list is full and this would be a new vote.
  */
-export async function castVote(v: { visitor: VisitorInfo; intentId: string; variant: number; answerId?: string; value: "up" | "down" | null }): Promise<boolean> {
-  const key = [v.visitor.visitorId, v.intentId, v.variant, v.answerId ?? ""];
+export async function castVote(v: { persona: string; visitor: VisitorInfo; intentId: string; variant: number; answerId?: string; value: "up" | "down" | null }): Promise<boolean> {
+  const key = [v.persona, v.visitor.visitorId, v.intentId, v.variant, v.answerId ?? ""];
   if (v.value === null) {
-    await query("DELETE FROM votes WHERE visitor_id = $1 AND intent_id = $2 AND variant = $3 AND answer_id = $4", key);
+    await query("DELETE FROM votes WHERE persona = $1 AND visitor_id = $2 AND intent_id = $3 AND variant = $4 AND answer_id = $5", key);
     return true;
   }
   if ((await count("votes")) >= MAX_ENTRIES) {
-    const res = await query("UPDATE votes SET value = $5, visitor = $6, updated_at = now() WHERE visitor_id = $1 AND intent_id = $2 AND variant = $3 AND answer_id = $4", [
-      ...key,
-      v.value,
-      v.visitor,
-    ]);
+    const res = await query(
+      "UPDATE votes SET value = $6, visitor = $7, updated_at = now() WHERE persona = $1 AND visitor_id = $2 AND intent_id = $3 AND variant = $4 AND answer_id = $5",
+      [...key, v.value, v.visitor],
+    );
     return (res.rowCount ?? 0) > 0;
   }
   await query(
-    `INSERT INTO votes (id, visitor_id, visitor, intent_id, variant, answer_id, value) VALUES ($1, $2, $3, $4, $5, $6, $7)
-     ON CONFLICT (visitor_id, intent_id, variant, answer_id) DO UPDATE SET value = EXCLUDED.value, visitor = EXCLUDED.visitor, updated_at = now()`,
-    [randomUUID(), v.visitor.visitorId, v.visitor, v.intentId, v.variant, v.answerId ?? "", v.value],
+    `INSERT INTO votes (id, persona, visitor_id, visitor, intent_id, variant, answer_id, value) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     ON CONFLICT (persona, visitor_id, intent_id, variant, answer_id) DO UPDATE SET value = EXCLUDED.value, visitor = EXCLUDED.visitor, updated_at = now()`,
+    [randomUUID(), v.persona, v.visitor.visitorId, v.visitor, v.intentId, v.variant, v.answerId ?? "", v.value],
   );
   return true;
 }
@@ -177,8 +210,9 @@ async function trim(table: keyof typeof sinceTrim, column: "at" | "created_at", 
 
 /** Analytics event; `visitor` is only there with consent. */
 export async function addEvent(e: Omit<EventEntry, "id" | "at">): Promise<void> {
-  await query("INSERT INTO events (id, type, intent_id, path, consent, visitor) VALUES ($1, $2, $3, $4, $5, $6)", [
+  await query("INSERT INTO events (id, persona, type, intent_id, path, consent, visitor) VALUES ($1, $2, $3, $4, $5, $6, $7)", [
     randomUUID(),
+    e.persona,
     e.type,
     e.intentId ?? null,
     e.path ?? null,
@@ -189,29 +223,69 @@ export async function addEvent(e: Omit<EventEntry, "id" | "at">): Promise<void> 
 }
 
 /** The caller picks the id: votes on the answer refer to it. */
-export async function addAiAnswer(e: Omit<AiAnswerEntry, "createdAt">): Promise<void> {
+export async function addAiAnswer(e: Omit<AiAnswerEntry, "createdAt" | "reviewedAt" | "promotedTo">): Promise<void> {
   // Arrays must be sent as JSON text: pg would otherwise encode them as a Postgres array.
-  await query("INSERT INTO ai_answers (id, visitor, question, route, intent_id, answer, cards, model, ms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", [
-    e.id,
-    e.visitor ?? null,
-    e.question,
-    e.route,
-    e.intentId ?? null,
-    e.answer ?? null,
-    e.cards ? JSON.stringify(e.cards) : null,
-    e.model ?? null,
-    e.ms,
-  ]);
+  const asJson = (v: unknown) => (v === undefined ? null : JSON.stringify(v));
+  await query(
+    `INSERT INTO ai_answers (id, persona, version_id, tier, lang, visitor, question, route, intent_id, answer, cards, model, ms,
+       decline_reason, confidence, retrieved, flags, usage)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+    [
+      e.id,
+      e.persona,
+      e.versionId ?? null,
+      e.tier,
+      e.lang ?? null,
+      e.visitor ?? null,
+      e.question,
+      e.route,
+      e.intentId ?? null,
+      e.answer ?? null,
+      asJson(e.cards),
+      e.model ?? null,
+      e.ms,
+      e.declineReason ?? null,
+      e.confidence ?? null,
+      asJson(e.retrieved),
+      asJson(e.flags),
+      asJson(e.usage),
+    ],
+  );
   await trim("ai_answers", "created_at", MAX_ENTRIES);
 }
 
-type ContactRow = { id: string; created_at: Date; visitor: VisitorInfo; name: string; email: string; company: string | null; message: string };
-type FeedbackRow = { id: string; created_at: Date; visitor: VisitorInfo; rating: number | null; message: string; name: string | null; email: string | null };
-type VoteRow = { id: string; created_at: Date; updated_at: Date; visitor: VisitorInfo; intent_id: string; variant: number; answer_id: string; value: "up" | "down" };
-type EventRow = { id: string; at: Date; type: EventEntry["type"]; intent_id: string | null; path: string | null; consent: boolean; visitor: VisitorInfo | null };
+type ContactRow = {
+  id: string;
+  created_at: Date;
+  persona: string;
+  kind: ContactEntry["kind"];
+  status: ContactEntry["status"];
+  visitor: VisitorInfo;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  relation: string | null;
+  company: string | null;
+  message: string;
+  code_id: string | null;
+};
+type FeedbackRow = { id: string; created_at: Date; persona: string; visitor: VisitorInfo; rating: number | null; message: string; name: string | null; email: string | null };
+type VoteRow = { id: string; created_at: Date; updated_at: Date; persona: string; visitor: VisitorInfo; intent_id: string; variant: number; answer_id: string; value: "up" | "down" };
+type EventRow = { id: string; at: Date; persona: string; type: EventEntry["type"]; intent_id: string | null; path: string | null; consent: boolean; visitor: VisitorInfo | null };
 type AiAnswerRow = {
   id: string;
   created_at: Date;
+  persona: string;
+  version_id: string | null;
+  tier: AiAnswerEntry["tier"];
+  lang: string | null;
+  decline_reason: AiAnswerEntry["declineReason"] | null;
+  confidence: AiAnswerEntry["confidence"] | null;
+  retrieved: string[] | null;
+  flags: AiAnswerEntry["flags"] | null;
+  usage: AiAnswerEntry["usage"] | null;
+  reviewed_at: Date | null;
+  promoted_to: string | null;
   visitor: VisitorInfo | null;
   question: string;
   route: AiAnswerEntry["route"];
@@ -222,33 +296,64 @@ type AiAnswerRow = {
   ms: number;
 };
 
-/** Everything, oldest first, in the shape the inbox and the JSON export use. */
-export async function readDb(): Promise<Db> {
+/**
+ * Everything, oldest first, in the shape the inbox and the JSON export use. With `persona`, only that
+ * persona's rows.
+ */
+export async function readDb(persona?: string): Promise<Db> {
+  const where = persona ? " WHERE persona = $1" : "";
+  const params = persona ? [persona] : [];
   const [c, f, v, e, a] = await Promise.all([
-    query<ContactRow>("SELECT * FROM contacts ORDER BY created_at"),
-    query<FeedbackRow>("SELECT * FROM feedback ORDER BY created_at"),
-    query<VoteRow>("SELECT * FROM votes ORDER BY created_at"),
-    query<EventRow>("SELECT * FROM events ORDER BY at"),
-    query<AiAnswerRow>("SELECT * FROM ai_answers ORDER BY created_at"),
+    query<ContactRow>(`SELECT * FROM contacts${where} ORDER BY created_at`, params),
+    query<FeedbackRow>(`SELECT * FROM feedback${where} ORDER BY created_at`, params),
+    query<VoteRow>(`SELECT * FROM votes${where} ORDER BY created_at`, params),
+    query<EventRow>(`SELECT * FROM events${where} ORDER BY at`, params),
+    query<AiAnswerRow>(`SELECT * FROM ai_answers${where} ORDER BY created_at`, params),
   ]);
   return {
     version: 1,
-    contacts: c.rows.map((r) => ({ id: r.id, createdAt: iso(r.created_at), visitor: r.visitor, name: r.name, email: r.email, company: orUndef(r.company), message: r.message })),
-    feedback: f.rows.map((r) => ({ id: r.id, createdAt: iso(r.created_at), visitor: r.visitor, rating: r.rating, message: r.message, name: orUndef(r.name), email: orUndef(r.email) })),
+    contacts: c.rows.map((r) => ({
+      id: r.id,
+      createdAt: iso(r.created_at),
+      persona: r.persona,
+      kind: r.kind,
+      status: r.status,
+      visitor: r.visitor,
+      name: r.name,
+      email: orUndef(r.email),
+      phone: orUndef(r.phone),
+      relation: orUndef(r.relation),
+      company: orUndef(r.company),
+      message: r.message,
+      codeId: orUndef(r.code_id),
+    })),
+    feedback: f.rows.map((r) => ({ id: r.id, createdAt: iso(r.created_at), persona: r.persona, visitor: r.visitor, rating: r.rating, message: r.message, name: orUndef(r.name), email: orUndef(r.email) })),
     votes: v.rows.map((r) => ({
       id: r.id,
       createdAt: iso(r.created_at),
       updatedAt: iso(r.updated_at),
+      persona: r.persona,
       visitor: r.visitor,
       intentId: r.intent_id,
       variant: r.variant,
       answerId: r.answer_id || undefined,
       value: r.value,
     })),
-    events: e.rows.map((r) => ({ id: r.id, at: iso(r.at), type: r.type, intentId: orUndef(r.intent_id), path: orUndef(r.path), consent: r.consent, visitor: orUndef(r.visitor) })),
+    events: e.rows.map((r) => ({ id: r.id, at: iso(r.at), persona: r.persona, type: r.type, intentId: orUndef(r.intent_id), path: orUndef(r.path), consent: r.consent, visitor: orUndef(r.visitor) })),
     aiAnswers: a.rows.map((r) => ({
       id: r.id,
       createdAt: iso(r.created_at),
+      persona: r.persona,
+      versionId: orUndef(r.version_id),
+      tier: r.tier,
+      lang: orUndef(r.lang),
+      declineReason: orUndef(r.decline_reason),
+      confidence: orUndef(r.confidence),
+      retrieved: orUndef(r.retrieved),
+      flags: orUndef(r.flags),
+      usage: orUndef(r.usage),
+      reviewedAt: r.reviewed_at ? iso(r.reviewed_at) : undefined,
+      promotedTo: orUndef(r.promoted_to),
       visitor: orUndef(r.visitor),
       question: r.question,
       route: r.route,
@@ -261,7 +366,7 @@ export async function readDb(): Promise<Db> {
   };
 }
 
-/** Throws unless the database answers (on a fresh database this also creates the tables). */
+/** Throws unless the database answers (on a fresh database this also applies the migrations). */
 export async function checkStore(): Promise<void> {
   await query("SELECT 1");
 }

@@ -1,10 +1,9 @@
-import { cookies } from "next/headers";
-import { ADMIN_COOKIE, isValidSession } from "@/server/admin-auth";
+import { adminSession } from "@/server/admin-session";
 import { bad } from "@/server/http";
 import { readDb, type Db } from "@/server/store";
 
-export async function GET() {
-  if (!(await isValidSession((await cookies()).get(ADMIN_COOKIE)?.value))) return bad("Not found.", 404);
+export async function GET(req: Request) {
+  if (!(await adminSession(req))) return bad("Sign in first.", 401);
   let db: Db;
   try {
     db = await readDb();

@@ -1,5 +1,7 @@
-/* The CV is a paper document: always light, A4, the same on screen and in the PDF. */
-.cv-root {
+/* The CV is a paper document: always light, A4, the same on screen and in the PDF.
+   .cv-preview carries the same paper variables for the live preview in the admin's Studio. */
+.cv-root,
+.cv-preview {
   --cv-ink: #16171a;
   --cv-muted: #57524a;
   --cv-faint: #635e55;
@@ -8,14 +10,17 @@
   /* On screen the paper is a soft off-white; print forces pure white below. */
   --cv-paper: #fdfcf9;
   --cv-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 12px 40px -12px rgb(0 0 0 / 0.18);
-  min-height: 100dvh;
-  background: var(--bg-soft);
   color: var(--cv-ink);
-  padding: 24px 16px 56px;
   font-size: 9.5pt;
   line-height: 1.4;
 }
-.dark .cv-root {
+.cv-root {
+  min-height: 100dvh;
+  background: var(--bg-soft);
+  padding: 24px 16px 56px;
+}
+.dark .cv-root,
+.dark .cv-preview {
   --cv-paper: #f4f2ec;
   --cv-shadow: 0 12px 40px -12px rgb(0 0 0 / 0.5);
 }

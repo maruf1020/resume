@@ -55,3 +55,9 @@ tsconfig.private.json
 # Private source material (contains confidential client names) - never publish
 /info/*
 !/info/index.html
+
+# Generated persona documents (PDFs printed at publish, served by /d/<file>)
+/var/
+
+# AI eval results (npm run eval)
+/evals/results/

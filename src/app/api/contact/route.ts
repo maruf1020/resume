@@ -1,4 +1,5 @@
 import { bad, clientKey, consentedVisitor, forbidden, isEmail, json, limited, readJson, sameOrigin, str } from "@/server/http";
+import { personaForRequest } from "@/server/persona/resolve";
 import { addContact } from "@/server/store";
 
 export async function POST(req: Request) {
@@ -21,7 +22,9 @@ export async function POST(req: Request) {
 
   let saved: boolean;
   try {
-    saved = await addContact({ visitor, name, email, company, message });
+    const { slug, preview } = await personaForRequest(req);
+    if (preview) return json({ ok: true, preview: true }, 201); // a test from the draft preview
+    saved = await addContact({ persona: slug, visitor, name, email, company, message });
   } catch (err) {
     console.error("[contact] Could not save:", err);
     return bad("Could not save right now.", 503);

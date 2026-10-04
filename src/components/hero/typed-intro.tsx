@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { introPools, introSchedule, longestIntro, staticIntro } from "@/content/intro";
+import { usePersona } from "@/lib/persona/context";
 
 type Seg = { text: string; typing: boolean };
 
@@ -14,9 +14,14 @@ const sleep = (ms: number, signal: AbortSignal) =>
     });
   });
 
+// Types whole characters as a reader sees them (grapheme clusters), so a Bangla conjunct or a vowel sign
+// never shows half-formed while typing.
+const segmenter = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+const graphemes = (text: string) => (segmenter ? Array.from(segmenter.segment(text), (s) => s.segment) : [...text]);
+
 /** Splits "Oh,^250 hi." into typed chunks and pauses. */
 function parse(line: string): (string | number)[] {
-  return line.split(/(\^\d+)/).flatMap<string | number>((part) => (part.startsWith("^") ? [Number(part.slice(1))] : [...part]));
+  return line.split(/(\^\d+)/).flatMap<string | number>((part) => (part.startsWith("^") ? [Number(part.slice(1))] : graphemes(part)));
 }
 const clean = (line: string) => line.replace(/\^\d+/g, "");
 
@@ -57,6 +62,8 @@ function fitFontSize(el: HTMLElement, text: string): number {
 }
 
 export function TypedIntro() {
+  const { hero } = usePersona();
+  const { pools: introPools, schedule: introSchedule, staticIntro, longest: longestIntro } = hero;
   const [segs, setSegs] = useState<Seg[]>(() => introPools.map(() => ({ text: "", typing: false })));
   const [active, setActive] = useState(-1);
   const ref = useRef<HTMLHeadingElement>(null);
@@ -72,7 +79,7 @@ export function TypedIntro() {
     const ro = new ResizeObserver(fit);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [longestIntro]);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -102,10 +109,10 @@ export function TypedIntro() {
 
     const erase = async (i: number) => {
       setActive(i);
-      let out = clean(current[i]);
-      while (out.length) {
-        out = out.slice(0, -1);
-        update(i, out, true);
+      const chars = graphemes(clean(current[i]));
+      while (chars.length) {
+        chars.pop();
+        update(i, chars.join(""), true);
         await sleep(14, signal);
       }
     };
@@ -133,7 +140,7 @@ export function TypedIntro() {
     })().catch(() => {});
 
     return () => ctrl.abort();
-  }, []);
+  }, [introPools, introSchedule]);
 
   return (
     <h1 ref={ref} className="intro display w-full text-fg">
