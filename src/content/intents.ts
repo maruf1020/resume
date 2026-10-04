@@ -21,30 +21,14 @@ import {
   User,
   Zap,
 } from "lucide-react";
+import type { Block } from "@/lib/persona/types";
 import { facts } from "./details";
 import { profile } from "./profile";
 import { projects } from "./projects";
 
-export type Block =
-  | { kind: "stats" }
-  | { kind: "focus" }
-  | { kind: "beliefs" }
-  | { kind: "privacy" }
-  | { kind: "experience" }
-  | { kind: "projects" }
-  | { kind: "project"; id: string }
-  | { kind: "skills" }
-  | { kind: "cloud" }
-  | { kind: "education" }
-  | { kind: "languages" }
-  | { kind: "contact" }
-  | { kind: "hire" }
-  | { kind: "download" }
-  | { kind: "quotes" }
-  | { kind: "stack" }
-  | { kind: "suggest" }
-  | { kind: "contact-form" }
-  | { kind: "feedback-form" };
+// The job persona's questions as code. The site reads them through the persona (src/server/persona),
+// which starts from this file until a job persona is published from the admin.
+export type { Block };
 
 export type Intent = {
   id: string;

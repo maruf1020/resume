@@ -3,20 +3,25 @@ import { Breadcrumbs, JsonLd, PageHead } from "@/components/site/site-shell";
 import { experience } from "@/content/experience";
 import { profile } from "@/content/profile";
 import { breadcrumbLd, describe, graph, pageMetadata, webPageLd } from "@/lib/seo";
+import { otherPersonaMetadata, otherPersonaPage } from "@/components/site/other-persona";
 
 const PATH = "/experience/";
 const TITLE = "Experience";
 const INTRO = `${profile.role} with 5+ years of production work in JavaScript and TypeScript for clients in France, the UK and Germany - from front-end experimentation to full-stack platforms on AWS and Azure.`;
 const DESCRIPTION = describe(`Work experience of ${profile.name}: ${INTRO}`);
 
-export const metadata = pageMetadata({ path: PATH, title: TITLE, description: DESCRIPTION });
+export async function generateMetadata() {
+  return (await otherPersonaMetadata("experience")) ?? pageMetadata({ path: PATH, title: TITLE, description: DESCRIPTION });
+}
 
 const trail = [
   { name: "Home", path: "/" },
   { name: "Experience", path: PATH },
 ];
 
-export default function ExperiencePage() {
+export default async function ExperiencePage() {
+  const other = await otherPersonaPage("experience");
+  if (other) return other;
   return (
     <>
       <JsonLd data={graph(webPageLd(PATH, `Experience - ${profile.name}`, DESCRIPTION), breadcrumbLd(trail))} />

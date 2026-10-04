@@ -11,19 +11,18 @@ import { SuggestionChips } from "@/components/chat/suggestion-chips";
 import { TypedIntro } from "@/components/hero/typed-intro";
 import { Sidebar } from "@/components/shell/sidebar";
 import { TopBar } from "@/components/shell/top-bar";
-import { getIntent, type Intent } from "@/content/intents";
-import { profile } from "@/content/profile";
-import { focusInOtherModal, useFocusTrap } from "@/lib/use-focus-trap";
-
-// The landing screen shows a short, curated set; "More" opens the full list.
-const LANDING = ["about", "experience", "projects", "skills", "hire"]
-  .map((id) => getIntent(id))
-  .filter((i): i is Intent => !!i);
 import { resolveIntent, useChat } from "@/lib/chat";
 import { startSession, track } from "@/lib/consent";
+import { RichText } from "@/components/chat/rich-text";
+import { usePersona } from "@/lib/persona/context";
+import type { Question } from "@/lib/persona/types";
+import { focusInOtherModal, useFocusTrap } from "@/lib/use-focus-trap";
 
 export function ChatApp({ initialIntent, aiEnabled = false }: { initialIntent?: string; aiEnabled?: boolean }) {
-  const chat = useChat(initialIntent);
+  const persona = usePersona();
+  // The landing screen shows a short, curated set; "More" opens the full list.
+  const landing = persona.landing.map((id) => persona.get(id)).filter((q): q is Question => !!q);
+  const chat = useChat(persona, initialIntent);
   const { messages, generating, ask: chatAsk } = chat;
   const empty = messages.length === 0;
 
@@ -150,8 +149,8 @@ export function ChatApp({ initialIntent, aiEnabled = false }: { initialIntent?: 
   const status =
     lastAssistant?.role === "assistant" && lastAssistant.animate
       ? lastAssistant.phase === "done"
-        ? `Answer ready: ${resolveIntent(lastAssistant).label}`
-        : "Reading my CV"
+        ? `Answer ready: ${resolveIntent(lastAssistant, persona).label}`
+        : persona.labels.thinkingStatus
       : "";
 
   // Pair each question with its answer so every answer is a section headed by its question.
@@ -177,7 +176,7 @@ export function ChatApp({ initialIntent, aiEnabled = false }: { initialIntent?: 
       Skip to question box
     </a>
     {/* The Privacy answer carries the same Accept/Reject, so the banner steps aside while it is shown. */}
-    <ConsentBanner onLearnMore={() => chatAsk("privacy")} hidden={activeIntent === "privacy" || drawer} />
+    <ConsentBanner onLearnMore={persona.get("privacy") ? () => chatAsk("privacy") : undefined} hidden={activeIntent === "privacy" || drawer} />
     <div className="flex h-dvh overflow-hidden">
       {/* Desktop sidebar: full panel or a slim icon rail */}
       <motion.aside
@@ -241,7 +240,8 @@ export function ChatApp({ initialIntent, aiEnabled = false }: { initialIntent?: 
             ) : (
               <div role="log" aria-live="off" aria-label="Conversation" className="mx-auto w-full max-w-3xl space-y-8 px-4 pt-6 pb-[calc(2.5rem+var(--consent-h,0px))] md:px-6 md:pt-10">
                 <h1 className="sr-only">
-                  {profile.name} - {profile.role}
+                  {persona.identity.name}
+                  {persona.identity.role ? ` - ${persona.identity.role}` : ""}
                 </h1>
                 {turns.map(({ question, answer }, i) => {
                   const isLast = i === turns.length - 1;
@@ -302,16 +302,16 @@ export function ChatApp({ initialIntent, aiEnabled = false }: { initialIntent?: 
               <div className="mx-auto max-w-3xl">
                 <Composer ref={composer} onSubmit={ask} generating={generating} onStop={chat.stop} aiEnabled={aiEnabled} />
                 {empty && (
-                  <SuggestionChips intents={LANDING} onPick={ask} onMore={() => composer.current?.showAll()} compact className="mt-2.5" />
+                  <SuggestionChips intents={landing} onPick={ask} onMore={() => composer.current?.showAll()} compact className="mt-2.5" />
                 )}
                 <p className="mt-2 text-center text-xs text-faint">
                   {empty ? (
                     <>
-                      Pick a question or type <kbd className="rounded border border-line px-1 font-mono text-[11px]">/</kbd> to see
-                      everything you can ask.
+                      {persona.labels.pickHintBefore} <kbd className="rounded border border-line px-1 font-mono text-[11px]">/</kbd>{" "}
+                      {persona.labels.pickHintAfter}
                     </>
                   ) : (
-                    <>{aiEnabled ? "Listed answers come straight from my CV; anything else is answered by AI, from my CV only." : "Answers come straight from my CV - nothing is generated."}</>
+                    <RichText text={aiEnabled ? persona.labels.footerAi : persona.labels.footerNoAi} />
                   )}
                 </p>
               </div>

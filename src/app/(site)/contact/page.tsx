@@ -6,13 +6,16 @@ import { profile } from "@/content/profile";
 import { absoluteUrl } from "@/lib/site";
 import { breadcrumbLd, describe, graph, pageMetadata, PERSON_ID, WEBSITE_ID } from "@/lib/seo";
 import { withBase } from "@/lib/utils";
+import { otherPersonaMetadata, otherPersonaPage } from "@/components/site/other-persona";
 
 const PATH = "/contact/";
 const TITLE = "Contact and hiring";
 const INTRO = `I'm open to new roles as a tech lead, engineering lead or senior full-stack engineer. I prefer working on-site in Bangladesh, or relocating abroad for the right team.`;
 const DESCRIPTION = describe(`Contact ${profile.name}: ${INTRO} Email, phone, LinkedIn and GitHub.`);
 
-export const metadata = pageMetadata({ path: PATH, title: TITLE, description: DESCRIPTION });
+export async function generateMetadata() {
+  return (await otherPersonaMetadata("contact")) ?? pageMetadata({ path: PATH, title: TITLE, description: DESCRIPTION });
+}
 
 const trail = [
   { name: "Home", path: "/" },
@@ -29,7 +32,9 @@ const contactPage = {
   mainEntity: { "@id": PERSON_ID },
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const other = await otherPersonaPage("contact");
+  if (other) return other;
   const rows = [
     { icon: Mail, label: "Email", value: profile.email, href: `mailto:${profile.email}` },
     { icon: Phone, label: "Phone / WhatsApp", value: profile.phone, href: profile.phoneHref },

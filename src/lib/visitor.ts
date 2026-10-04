@@ -1,7 +1,7 @@
 "use client";
 
 import { getConsent } from "./consent";
-import { withBase } from "./utils";
+import { apiUrl } from "./utils";
 
 const KEY = "portfolio:visitor";
 let memoryId: string | undefined;
@@ -34,21 +34,21 @@ export function visitorInfo() {
   };
 }
 
-export type ApiResult = { ok: boolean; error?: string; [k: string]: unknown };
+export type ApiResult = { ok: boolean; error?: string; status?: number; [k: string]: unknown };
 
 /** Device details go along only when the visitor accepted the privacy banner; otherwise just the anonymous id. */
 export async function postApi(path: string, body: Record<string, unknown>, method = "POST"): Promise<ApiResult> {
   const consent = getConsent() === "granted";
   try {
-    const res = await fetch(withBase(path), {
+    const res = await fetch(apiUrl(path), {
       method,
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ...body, consent, visitor: consent ? visitorInfo() : { visitorId: visitorId() } }),
     });
     const data = (await res.json().catch(() => ({}))) as ApiResult;
-    return { ...data, ok: res.ok && data.ok !== false };
+    return { ...data, ok: res.ok && data.ok !== false, status: res.status };
   } catch {
-    return { ok: false, error: "Couldn't reach the server. Please try again." };
+    return { ok: false, status: 0, error: "Couldn't reach the server. Please try again." };
   }
 }
 

@@ -6,6 +6,7 @@ import { Breadcrumbs, JsonLd } from "@/components/site/site-shell";
 import { profile } from "@/content/profile";
 import { projectById, projects } from "@/content/projects";
 import { breadcrumbLd, describe, graph, pageMetadata, projectLd, webPageLd } from "@/lib/seo";
+import { currentPersona } from "@/server/persona/resolve";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -16,7 +17,7 @@ export function generateStaticParams() {
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { slug } = await props.params;
   const p = projectById(slug);
-  if (!p) return {};
+  if (!p || !(await currentPersona()).compiled.doc.legacy) return {};
   return pageMetadata({
     path: `/projects/${p.id}/`,
     title: `${p.name} - case study`,
@@ -28,7 +29,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 export default async function ProjectPage(props: Props) {
   const { slug } = await props.params;
   const p = projectById(slug);
-  if (!p) notFound();
+  // Case studies belong to the job persona only.
+  if (!p || !(await currentPersona()).compiled.doc.legacy) notFound();
   const path = `/projects/${p.id}/`;
   const trail = [
     { name: "Home", path: "/" },

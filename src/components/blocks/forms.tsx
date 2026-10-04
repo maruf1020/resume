@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 
 type Status = { state: "idle" | "sending" | "sent" | "error"; message?: string };
 
-const field =
+export const field =
   "w-full rounded-xl border border-line-strong bg-card px-3.5 py-2.5 text-[16px] outline-none transition-[border-color,box-shadow] placeholder:text-faint focus:border-accent focus:ring-1 focus:ring-accent";
-const label = "mb-1.5 block text-sm font-semibold";
+export const label = "mb-1.5 block text-sm font-semibold";
 const invalidField = "border-accent";
 
 /** Same rules as the API routes (src/app/api/contact, src/app/api/feedback), so problems show before sending. */
@@ -18,7 +18,7 @@ const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s) && s.leng
 type Errors<K extends string> = Partial<Record<K, string>>;
 
 /** Inline error under a field; its id is what the field's aria-describedby points to. */
-const FieldError = ({ id, message }: { id: string; message?: string }) =>
+export const FieldError = ({ id, message }: { id: string; message?: string }) =>
   message ? (
     <p id={id} className="mt-1.5 text-sm font-medium text-accent">
       {message}
@@ -26,7 +26,7 @@ const FieldError = ({ id, message }: { id: string; message?: string }) =>
   ) : null;
 
 /** aria props for a field that may have an error. */
-const errProps = (id: string, message?: string) =>
+export const errProps = (id: string, message?: string) =>
   message ? { "aria-invalid": true as const, "aria-describedby": id } : {};
 
 /** Focuses the first invalid field, in the order the fields appear. (useId ids are not valid CSS selectors, so no querySelector.) */
@@ -35,7 +35,7 @@ function focusFirst(form: HTMLFormElement | null, ids: string[]) {
 }
 
 /** Moves focus to a message once it appears (error alert, sent card), so keyboard and screen-reader users land on it. */
-function useFocusOnShow<T extends HTMLElement>(show: boolean) {
+export function useFocusOnShow<T extends HTMLElement>(show: boolean) {
   const ref = useRef<T>(null);
   useEffect(() => {
     if (show) ref.current?.focus();
@@ -44,7 +44,7 @@ function useFocusOnShow<T extends HTMLElement>(show: boolean) {
 }
 
 /** Error line for a failed send: focusable (not in the Tab order) so focus can land on it. */
-function SendError({ message }: { message?: string }) {
+export function SendError({ message }: { message?: string }) {
   const ref = useFocusOnShow<HTMLParagraphElement>(true);
   return (
     <p ref={ref} role="alert" tabIndex={-1} className="text-sm font-medium text-accent outline-none">

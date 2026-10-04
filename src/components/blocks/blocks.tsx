@@ -19,11 +19,15 @@ import { ContactForm, FeedbackForm } from "./forms";
 import { PrivacyChoice } from "@/components/consent";
 import { cloud, education, farewell, farewellCard, languages, quotes, siteStack, skills } from "@/content/details";
 import { experience } from "@/content/experience";
-import { primaryIntents, type Block } from "@/content/intents";
 import { beliefs } from "@/content/intro";
 import { profile } from "@/content/profile";
 import { projectById, projects } from "@/content/projects";
-import { cn, withBase } from "@/lib/utils";
+import { usePersona } from "@/lib/persona/context";
+import { QIcon } from "@/lib/persona/icons";
+import type { Block } from "@/lib/persona/types";
+import { cn } from "@/lib/utils";
+import { RequestAccess } from "./request-access";
+import { SectionBlock } from "./section-block";
 
 type Ask = (intentId: string) => void;
 
@@ -67,6 +71,10 @@ export function BlockView({ block, onAsk }: { block: Block; onAsk: Ask }) {
       return <ContactForm />;
     case "feedback-form":
       return <FeedbackForm />;
+    case "section":
+      return <SectionBlock sectionKey={block.key} />;
+    case "request-access":
+      return <RequestAccess />;
   }
 }
 
@@ -415,6 +423,7 @@ function ContactCard() {
 }
 
 function HireMe() {
+  const { document: doc, fileHref } = usePersona();
   const subject = encodeURIComponent("Opportunity for Maruf");
   return (
     <div className="card overflow-hidden">
@@ -445,9 +454,11 @@ function HireMe() {
         <a href={profile.phoneHref} className="btn btn-ghost" aria-label={`Call ${profile.phone}`}>
           <Phone className="size-4" /> Call me
         </a>
-        <a href={withBase(profile.cvPdf)} download className="btn btn-ghost">
-          <Download className="size-4" /> Download CV
-        </a>
+        {doc.pdfUrl && (
+          <a href={fileHref(doc.pdfUrl)} download className="btn btn-ghost">
+            <Download className="size-4" /> {doc.download}
+          </a>
+        )}
         <a href={profile.links.linkedin} target="_blank" rel="noreferrer" className="btn btn-ghost">
           <Linkedin className="size-4" /> LinkedIn
         </a>
@@ -457,6 +468,7 @@ function HireMe() {
 }
 
 function DownloadCard() {
+  const { document: doc, fileHref, href, labels, legacy } = usePersona();
   return (
     <div className="card flex flex-col gap-4 p-4 sm:flex-row sm:items-center md:p-5">
       <div className="flex items-center gap-4">
@@ -464,16 +476,22 @@ function DownloadCard() {
           <FileText className="size-7" />
         </div>
         <div>
-          <div className="font-semibold">Md-Maruf-Billah-CV.pdf</div>
-          <div className="text-sm text-muted">PDF · English · Updated {profile.cvUpdated}</div>
+          <div className="font-semibold">{doc.pdfUrl ? doc.fileName : doc.label}</div>
+          <div className="text-sm text-muted">
+            {doc.pdfUrl ? "PDF · " : ""}
+            {doc.language}
+            {doc.updated ? ` · Updated ${doc.updated}` : ""}
+          </div>
         </div>
       </div>
       <div className="flex gap-2 sm:ml-auto">
-        <a href={withBase(profile.cvPdf)} download className="btn btn-primary">
-          <Download className="size-4" /> Download
-        </a>
-        <a href={withBase("/cv/")} className="btn btn-ghost">
-          Web version
+        {doc.pdfUrl && (
+          <a href={fileHref(doc.pdfUrl)} download className="btn btn-primary">
+            <Download className="size-4" /> {legacy ? "Download" : labels.documentDownload}
+          </a>
+        )}
+        <a href={href(doc.pageUrl)} className={doc.pdfUrl ? "btn btn-ghost" : "btn btn-primary"}>
+          {doc.open ? labels.documentWeb : labels.requestAccess}
         </a>
       </div>
     </div>
@@ -600,11 +618,12 @@ function SiteStack() {
 }
 
 function Suggest({ onAsk }: { onAsk: Ask }) {
+  const { primary } = usePersona();
   return (
     <div className="flex flex-wrap gap-2">
-      {primaryIntents.slice(0, 8).map((i) => (
+      {primary.slice(0, 8).map((i) => (
         <IntentLink key={i.id} intentId={i.id} onPick={onAsk} className="chip">
-          <i.icon className="size-4 text-faint" /> {i.label}
+          <QIcon name={i.icon} className="size-4 text-faint" /> {i.label}
         </IntentLink>
       ))}
     </div>

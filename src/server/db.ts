@@ -1,16 +1,20 @@
-import { Pool, type QueryResultRow } from "pg";
+import path from "node:path";
+import { Pool, type PoolClient, type QueryResultRow } from "pg";
+import { pendingMigrations as pending, runMigrations } from "./migrate.mjs";
 
 /**
  * The Postgres connection (DATABASE_URL, e.g. a Neon database). One pool per process, kept on
- * globalThis so dev-server reloads and every route bundle share it. Tables are created on first use,
- * so a fresh database needs no setup step: the first request (or /api/health/) does it.
+ * globalThis so dev-server reloads and every route bundle share it. The schema is the SQL files in
+ * migrations/, applied in order before the first query (and by `npm run db:migrate`), so a fresh
+ * database needs no setup step.
  */
 
 const g = globalThis as typeof globalThis & { __pgPool?: Pool; __pgSchema?: Promise<void> };
 
 export const dbConfigured = () => !!process.env.DATABASE_URL?.trim();
 
-function pool(): Pool {
+/** The shared pool (also used by the auth library). Throws when DATABASE_URL is not set. */
+export function getPool(): Pool {
   if (g.__pgPool) return g.__pgPool;
   const url = process.env.DATABASE_URL?.trim();
   if (!url) throw new Error("DATABASE_URL is not set");
@@ -23,84 +27,47 @@ function pool(): Pool {
   return g.__pgPool;
 }
 
-// Visitor details stay JSON (jsonb) so the inbox reads them exactly as before. answer_id is '' rather
-// than NULL for curated answers, so the UNIQUE constraint (one vote per visitor per answer) covers both.
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS contacts (
-  id uuid PRIMARY KEY,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  visitor jsonb NOT NULL,
-  name text NOT NULL,
-  email text NOT NULL,
-  company text,
-  message text NOT NULL
-);
-CREATE TABLE IF NOT EXISTS feedback (
-  id uuid PRIMARY KEY,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  visitor jsonb NOT NULL,
-  rating smallint,
-  message text NOT NULL DEFAULT '',
-  name text,
-  email text
-);
-CREATE TABLE IF NOT EXISTS votes (
-  id uuid PRIMARY KEY,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  visitor_id text NOT NULL,
-  visitor jsonb NOT NULL,
-  intent_id text NOT NULL,
-  variant smallint NOT NULL,
-  answer_id text NOT NULL DEFAULT '',
-  value text NOT NULL CHECK (value IN ('up', 'down')),
-  UNIQUE (visitor_id, intent_id, variant, answer_id)
-);
-CREATE TABLE IF NOT EXISTS events (
-  id uuid PRIMARY KEY,
-  at timestamptz NOT NULL DEFAULT now(),
-  type text NOT NULL,
-  intent_id text,
-  path text,
-  consent boolean NOT NULL DEFAULT false,
-  visitor jsonb
-);
-CREATE INDEX IF NOT EXISTS events_at_idx ON events (at);
-CREATE TABLE IF NOT EXISTS ai_answers (
-  id uuid PRIMARY KEY,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  visitor jsonb,
-  question text NOT NULL,
-  route text NOT NULL,
-  intent_id text,
-  answer text,
-  cards jsonb,
-  model text,
-  ms integer NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS ai_answers_created_at_idx ON ai_answers (created_at);
-CREATE TABLE IF NOT EXISTS settings (
-  key text PRIMARY KEY,
-  value text NOT NULL
-);
-`;
+/** migrations/ next to package.json (the app is started from the project folder). */
+export const migrationsDir = () => path.join(/*turbopackIgnore: true*/ process.cwd(), "migrations");
 
-/** Creates the tables once per process (idempotent). A failure is retried on the next query. */
-function ensureSchema(): Promise<void> {
-  g.__pgSchema ??= pool()
-    .query(SCHEMA)
-    .then(
-      () => undefined,
-      (err: unknown) => {
-        g.__pgSchema = undefined;
-        throw err;
-      },
-    );
+/** Applies pending migrations once per process. A failure is retried on the next query. */
+export function ensureSchema(): Promise<void> {
+  g.__pgSchema ??= runMigrations(getPool(), { dir: migrationsDir(), log: (m) => console.log(`[db] migration ${m}`) }).then(
+    () => undefined,
+    (err: unknown) => {
+      g.__pgSchema = undefined;
+      throw err;
+    },
+  );
   return g.__pgSchema;
 }
 
-/** Runs one parameterised query, making sure the schema exists first. */
+/** Migrations not applied yet (for /api/health/ and the startup log). */
+export const pendingMigrations = () => pending(getPool(), migrationsDir());
+
+/** Runs one parameterised query, making sure the schema is up to date first. */
 export async function query<T extends QueryResultRow = QueryResultRow>(text: string, params: unknown[] = []) {
   await ensureSchema();
-  return pool().query<T>(text, params);
+  return getPool().query<T>(text, params);
+}
+
+/**
+ * Runs `fn` inside one transaction on one connection (BEGIN ... COMMIT, ROLLBACK on error).
+ * Use the given client for every query inside; don't call query() from within (it would wait for
+ * another connection).
+ */
+export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  await ensureSchema();
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    const result = await fn(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
 }

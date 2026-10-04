@@ -7,8 +7,8 @@ const isDev = process.env.NODE_ENV !== "production";
 // NEXT_DIST_DIR lets the CV PDF (or a test build) be built without touching a running `next dev`.
 const distDir = process.env.NEXT_DIST_DIR || ".next";
 
-// No nonces: the chat pages are prerendered, so inline scripts (Next's bootstrap, the theme script,
-// JSON-LD) need 'unsafe-inline'. Dev also needs 'unsafe-eval' and the HMR websocket.
+// No nonces (yet): inline scripts (Next's bootstrap, the theme script, JSON-LD) need 'unsafe-inline'.
+// Dev also needs 'unsafe-eval' and the HMR websocket.
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
@@ -35,8 +35,8 @@ const securityHeaders = [
 const longCache = (seconds: number) => [{ key: "Cache-Control", value: `public, max-age=${seconds}, stale-while-revalidate=86400` }];
 
 const nextConfig: NextConfig = {
-  // Runs as a Node server (`next start`): the chat pages are still prerendered,
-  // while /api/* and /admin need the server to read and write data/feedback.json.
+  // Runs as a Node server (`next start`): pages are rendered per request (the persona and its published
+  // content come from Postgres); /api/* and /admin read and write the database.
   distDir,
   // A build into a private folder adds that folder's type paths to its tsconfig. Point it at the
   // git-ignored tsconfig.private.json (which extends tsconfig.json) so tsconfig.json stays clean.
@@ -47,21 +47,23 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // The Postgres driver stays a plain Node dependency (it probes optional native bindings at runtime).
   serverExternalPackages: ["pg"],
+  // The CV's old address keeps working: it is served by the documents route, which returns the PDF
+  // printed at the last publish (or the one in public/ until then).
+  async rewrites() {
+    return { beforeFiles: [{ source: "/Md-Maruf-Billah-CV.pdf", destination: "/d/Md-Maruf-Billah-CV.pdf" }], afterFiles: [], fallback: [] };
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
-      // Pages (production only): browsers always revalidate, a CDN may cache for 10 minutes.
+      // Static files only (production): images for a week and the icon for a day (rename an image to bust
+      // it). Pages get no rule on purpose: they are rendered per request (persona, published content, the
+      // visitor's access) and Next sends them as private/no-store, so no shared cache keeps them. The CV PDF
+      // is served by /d/ (reprinted on publish) and sets its own short cache.
       ...(isDev
         ? []
         : [
-            // Static files: images for a week, the CV PDF and the icon for a day (rename an image to bust it).
             { source: "/images/:path*", headers: longCache(604800) },
-            { source: "/Md-Maruf-Billah-CV.pdf", headers: longCache(86400) },
             { source: "/icon.svg", headers: longCache(86400) },
-            {
-              source: "/((?!_next/static|api|admin|images/|Md-Maruf-Billah-CV\\.pdf|icon\\.svg).*)",
-              headers: [{ key: "Cache-Control", value: "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" }],
-            },
           ]),
       { source: "/admin/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       { source: "/api/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
@@ -72,8 +74,9 @@ const nextConfig: NextConfig = {
 export default function config(phase: string): NextConfig {
   // A fresh clone has no tsconfig.private.json (it is git-ignored); without it Next would write a
   // default one that misses the "@/*" path alias. "extends" also stops Next from editing it.
+  // It also leaves out .next, whose route types belong to a running `next dev` and may be stale.
   if (distDir !== ".next" && !existsSync("tsconfig.private.json")) {
-    writeFileSync("tsconfig.private.json", `{ "extends": "./tsconfig.json" }
+    writeFileSync("tsconfig.private.json", `{ "extends": "./tsconfig.json", "exclude": ["node_modules", ".next", ".next-*"] }
 `);
   }
   // Only while building: that's when canonical links, robots.txt and sitemap.xml are baked in.

@@ -3,10 +3,9 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { avatarSrc, photos as allPhotos } from "@/content/photos";
-import { profile } from "@/content/profile";
+import { usePersona } from "@/lib/persona/context";
 import { useFocusTrap } from "@/lib/use-focus-trap";
-import { cn, withBase } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 type Ctx = { open: () => void };
 const ViewerContext = createContext<Ctx>({ open: () => {} });
@@ -15,13 +14,27 @@ export const usePhotoViewer = () => useContext(ViewerContext);
 /** Round face avatar that opens the photo. */
 export function Avatar({ size = 32, className }: { size?: number; className?: string }) {
   const { open } = usePhotoViewer();
+  const { identity, fileHref } = usePersona();
+  const src = identity.avatar?.src;
   // On touch screens the button grows to a 44px hit area; the negative margin keeps the layout (and the visible face) unchanged.
   const slack = Math.max(0, (44 - size) / 2);
+  if (!src || !identity.photos.length)
+    // No photo to open (or none this visitor may see): just the face, or the initials.
+    return (
+      <span className={cn("grid shrink-0 place-items-center overflow-hidden rounded-full bg-surface text-xs font-semibold ring-1 ring-line", className)} style={{ width: size, height: size }}>
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={fileHref(src)} alt="" width={size} height={size} className="size-full object-cover" decoding="async" />
+        ) : (
+          <span aria-hidden="true">{identity.initials}</span>
+        )}
+      </span>
+    );
   return (
     <button
       type="button"
       onClick={open}
-      aria-label={`View photo of ${profile.name}`}
+      aria-label={`View photo of ${identity.name}`}
       className={cn(
         "group/avatar relative grid shrink-0 place-items-center rounded-full pointer-coarse:m-[calc(var(--av-slack)*-1)] pointer-coarse:p-[var(--av-slack)]",
         className,
@@ -33,7 +46,7 @@ export function Avatar({ size = 32, className }: { size?: number; className?: st
         style={{ width: size, height: size }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={withBase(avatarSrc)} alt="" width={size} height={size} className="size-full object-cover" decoding="async" />
+        <img src={fileHref(src)} alt="" width={size} height={size} className="size-full object-cover" decoding="async" />
       </span>
     </button>
   );
@@ -52,6 +65,8 @@ export function PhotoViewerProvider({ children }: { children: React.ReactNode })
 
 /** Picasa-style: the page dims behind a centred photo; side arrows loop through the photos. Click outside, Esc or ✕ closes. */
 function Viewer({ onClose }: { onClose: () => void }) {
+  const { identity, fileHref } = usePersona();
+  const allPhotos = identity.photos;
   const [index, setIndex] = useState(0);
   const [dir, setDir] = useState(1);
   const [zoom, setZoom] = useState(1);
@@ -88,13 +103,13 @@ function Viewer({ onClose }: { onClose: () => void }) {
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     // Preload the others so the arrows feel instant.
-    for (const p of allPhotos) new Image().src = withBase(p.src);
+    for (const p of allPhotos) new Image().src = fileHref(p.src);
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = overflow;
       prev?.focus?.();
     };
-  }, [onClose, go]);
+  }, [onClose, go, allPhotos, fileHref]);
 
   const arrow =
     "absolute top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/40 text-white/85 backdrop-blur transition-colors hover:bg-white/20 hover:text-white md:size-12";
@@ -104,7 +119,7 @@ function Viewer({ onClose }: { onClose: () => void }) {
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
-      aria-label={`Photos of ${profile.name}`}
+      aria-label={`Photos of ${identity.name}`}
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -140,7 +155,7 @@ function Viewer({ onClose }: { onClose: () => void }) {
       <AnimatePresence mode="popLayout" initial={false} custom={dir}>
         <motion.img
           key={photo.src}
-          src={withBase(photo.src)}
+          src={fileHref(photo.src)}
           alt={photo.alt}
           width={photo.width}
           height={photo.height}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { withBase } from "./utils";
+import { apiUrl } from "./utils";
 import { visitorInfo } from "./visitor";
 
 /** "granted" | "denied" once the visitor chooses; null until then. */
@@ -134,7 +134,7 @@ export function track(type: "pageview" | "ask", data: { intentId?: string; path?
   const body = JSON.stringify({ type, ...data, consent: granted, visitor: granted ? details() : undefined });
   try {
     // Read the (tiny) response so the connection is released straight away.
-    fetch(withBase("/api/events/"), { method: "POST", headers: { "content-type": "application/json" }, body })
+    fetch(apiUrl("/api/events/"), { method: "POST", headers: { "content-type": "application/json" }, body })
       .then((r) => r.text())
       .catch(() => {});
   } catch {

@@ -6,6 +6,7 @@ import { photos } from "@/content/photos";
 import { profile } from "@/content/profile";
 import { breadcrumbLd, describe, graph, pageMetadata, profilePageLd } from "@/lib/seo";
 import { withBase } from "@/lib/utils";
+import { otherPersonaMetadata, otherPersonaPage } from "@/components/site/other-persona";
 
 const PATH = "/about/";
 const TITLE = "About";
@@ -13,14 +14,18 @@ const DESCRIPTION = describe(
   `About ${profile.name}, ${profile.role} in Dhaka: ${profile.summary}`,
 );
 
-export const metadata = pageMetadata({ path: PATH, title: TITLE, description: DESCRIPTION });
+export async function generateMetadata() {
+  return (await otherPersonaMetadata("about")) ?? pageMetadata({ path: PATH, title: TITLE, description: DESCRIPTION });
+}
 
 const trail = [
   { name: "Home", path: "/" },
   { name: "About", path: PATH },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const other = await otherPersonaPage("about");
+  if (other) return other;
   const photo = photos[0];
   return (
     <>

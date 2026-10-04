@@ -17,11 +17,13 @@ import {
   MessageSquareText,
   Monitor,
   Search,
+  Settings,
   Sparkles,
   Star,
   ThumbsDown,
   ThumbsUp,
   Timer,
+  UserRoundPen,
   Users,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-provider";
@@ -29,8 +31,9 @@ import { Analytics } from "./analytics";
 import type { AdminData } from "@/server/admin-view";
 import type { VisitorInfo } from "@/server/store";
 import { cn, plain, withBase } from "@/lib/utils";
+import { getAuthClient } from "@/lib/auth-client";
 
-type Props = { data: AdminData; labels: Record<string, string> };
+type Props = { data: AdminData; labels: Record<string, string>; personas?: { slug: string; name: string }[]; persona?: string };
 type Tab = "all" | "messages" | "feedback" | "votes" | "ai" | "visitors" | "analytics";
 
 type Item = {
@@ -181,7 +184,16 @@ function buildItems(db: AdminData, labels: Record<string, string>): Item[] {
   }
   const who = (id: string) => named.get(id) ?? {};
   return [
-    ...db.contacts.map<Item>((c) => ({ id: c.id, kind: "message", at: c.createdAt, visitorId: c.visitor.visitorId, ...who(c.visitor.visitorId), title: c.company ? `Message · ${c.company}` : "Message", body: c.message })),
+    ...db.contacts.map<Item>((c) => ({
+      id: c.id,
+      kind: "message",
+      at: c.createdAt,
+      visitorId: c.visitor.visitorId,
+      ...who(c.visitor.visitorId),
+      // Access requests are answered in the persona's Studio (Document & access), where a code is made.
+      title: c.kind === "access" ? `Access request${c.relation ? ` · ${c.relation}` : ""} (${c.status})` : c.company ? `Message · ${c.company}` : "Message",
+      body: c.kind === "access" ? [c.phone && `Phone: ${c.phone}`, c.message].filter(Boolean).join("\n") : c.message,
+    })),
     ...db.feedback.map<Item>((f) => ({ id: f.id, kind: "feedback", at: f.createdAt, visitorId: f.visitor.visitorId, ...who(f.visitor.visitorId), title: "Site feedback", body: f.message, rating: f.rating })),
     ...db.votes.map<Item>((v) => ({ id: v.id, kind: "vote", at: v.updatedAt, visitorId: v.visitor.visitorId, ...who(v.visitor.visitorId), title: labels[v.intentId] ?? v.intentId, body: "", value: v.value })),
   ].sort((a, b) => b.at.localeCompare(a.at));
@@ -233,7 +245,7 @@ function useEdgeFade(ref: React.RefObject<HTMLElement | null>) {
 }
 
 // ---------- page ----------
-export function AdminDashboard({ data: db, labels }: Props) {
+export function AdminDashboard({ data: db, labels, personas = [], persona }: Props) {
   const now = useNow();
   const lastSeen = useLastSeen();
   const [tab, setTab] = useState<Tab>("all");
@@ -301,7 +313,10 @@ export function AdminDashboard({ data: db, labels }: Props) {
   const newCount = lastSeen ? items.filter((i) => i.at > lastSeen).length : items.length;
 
   const signOut = async () => {
-    await fetch(withBase("/api/admin/session/"), { method: "DELETE" }).catch(() => {});
+    // Ends this device's session (other devices stay signed in; "Sign out everywhere" is in Settings).
+    await getAuthClient()
+      .signOut()
+      .catch(() => {});
     window.location.assign(withBase("/"));
   };
 
@@ -344,6 +359,12 @@ export function AdminDashboard({ data: db, labels }: Props) {
             <span className="eyebrow ml-1 hidden rounded-md border border-line px-1.5 py-0.5 sm:inline">Private</span>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <a href={withBase("/admin/personas/")} className="icon-btn" aria-label="Personas" title="Personas: what the site knows and says">
+              <UserRoundPen className="size-[18px]" />
+            </a>
+            <a href={withBase("/admin/settings/")} className="icon-btn" aria-label="Settings" title="Settings: password, devices">
+              <Settings className="size-[18px]" />
+            </a>
             <ThemeToggle />
             <a href={withBase("/api/admin/export/")} className="btn btn-ghost py-2.5 text-sm max-sm:px-3 pointer-coarse:min-h-11 pointer-coarse:min-w-11" aria-label="Export JSON">
               <Download className="size-4" /> <span className="hidden sm:inline">Export</span>
@@ -425,7 +446,27 @@ export function AdminDashboard({ data: db, labels }: Props) {
             ))}
           </div>
           </div>
-          <label className="relative md:ml-auto md:w-80">
+          {personas.length > 1 && (
+            <div className="flex items-center gap-2 text-sm font-semibold md:ml-auto">
+              <label htmlFor="inbox-persona" className="text-muted">
+                Persona
+              </label>
+              <select
+                id="inbox-persona"
+                value={persona ?? ""}
+                onChange={(e) => window.location.assign(withBase(e.target.value ? `/admin/?persona=${encodeURIComponent(e.target.value)}` : "/admin/"))}
+                className="rounded-xl border border-line-strong bg-card px-3 py-2.5 text-sm font-medium outline-none focus:border-accent pointer-coarse:min-h-11"
+              >
+                <option value="">All</option>
+                {personas.map((p) => (
+                  <option key={p.slug} value={p.slug}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <label className={cn("relative md:w-80", personas.length > 1 ? "" : "md:ml-auto")}>
             <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-faint" />
             <input
               ref={searchRef}
@@ -756,6 +797,7 @@ function VotesTable({ db, labels, query }: { db: Pick<AdminData, "votes">; label
 const ROUTE = {
   answer: { label: "Answered", tone: "bg-emerald-500/12 text-emerald-800 dark:text-emerald-400" },
   topic: { label: "Routed", tone: "bg-sky-500/12 text-sky-800 dark:text-sky-400" },
+  gated: { label: "Needs access", tone: "bg-amber-500/12 text-amber-800 dark:text-amber-400" },
   decline: { label: "Declined", tone: "bg-surface text-muted" },
   error: { label: "Failed", tone: DOWN_TONE },
 } as const;

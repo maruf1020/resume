@@ -12,12 +12,19 @@
     "lint": "eslint",
     "cv:pdf": "node scripts/cv-pdf.mjs",
     "typecheck": "tsc --noEmit",
-    "admin:hash": "node scripts/hash-admin-code.mjs",
     "db:import": "node --env-file=.env.local scripts/import-json-store.mjs",
-    "check": "npm run typecheck && npm run lint && npm run build",
-    "seo:indexnow": "node scripts/indexnow.mjs"
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "seo:indexnow": "node scripts/indexnow.mjs",
+    "test": "vitest run",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "admin:create": "node scripts/admin-create.mjs",
+    "auth:schema": "node scripts/auth-schema.mjs",
+    "eval": "vitest run --config vitest.eval.config.mts"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.87",
+    "ai": "^7.0.127",
+    "better-auth": "^1.7.7",
     "clsx": "^2.1.1",
     "gsap": "^3.15.0",
     "lucide-react": "^1.49.0",
@@ -27,7 +34,9 @@
     "pg": "^8.23.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "tailwind-merge": "^3.7.0"
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -38,6 +47,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }

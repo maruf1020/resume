@@ -3,20 +3,25 @@ import { Breadcrumbs, JsonLd, PageHead } from "@/components/site/site-shell";
 import { cloud, skills } from "@/content/details";
 import { profile } from "@/content/profile";
 import { breadcrumbLd, describe, graph, pageMetadata, webPageLd } from "@/lib/seo";
+import { otherPersonaMetadata, otherPersonaPage } from "@/components/site/other-persona";
 
 const PATH = "/skills/";
 const TITLE = "Skills";
 const INTRO = "JavaScript and TypeScript end to end: React and Next.js on the front, Node.js and NestJS on the back, PostgreSQL underneath, and AWS or Azure to run it. Every skill below shows up in real projects.";
 const DESCRIPTION = describe(`Skills of ${profile.name}: ${INTRO}`);
 
-export const metadata = pageMetadata({ path: PATH, title: TITLE, description: DESCRIPTION });
+export async function generateMetadata() {
+  return (await otherPersonaMetadata("skills")) ?? pageMetadata({ path: PATH, title: TITLE, description: DESCRIPTION });
+}
 
 const trail = [
   { name: "Home", path: "/" },
   { name: "Skills", path: PATH },
 ];
 
-export default function SkillsPage() {
+export default async function SkillsPage() {
+  const other = await otherPersonaPage("skills");
+  if (other) return other;
   return (
     <>
       <JsonLd data={graph(webPageLd(PATH, `Skills - ${profile.name}`, DESCRIPTION), breadcrumbLd(trail))} />
