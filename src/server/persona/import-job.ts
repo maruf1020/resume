@@ -150,7 +150,7 @@ export function jobPersonaInput(): PersonaDocInput {
       initials: profile.initials,
       givenName: "Maruf",
       familyName: "Billah",
-      alternateNames: ["Maruf Billah", "Md. Maruf Billah", "maruf1020"],
+      alternateNames: ["Maruf Billah", "Md. Maruf Billah", "MarufGPT", "maruf1020"],
       role: profile.role,
       headline: profile.headline,
       location: profile.location,

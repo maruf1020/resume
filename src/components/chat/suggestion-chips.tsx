@@ -49,10 +49,11 @@ export function SuggestionChips({ ids, intents, onPick, wrap, center, compact, o
   );
 
   if (compact)
-    // One line: centred when it fits, scrolls sideways when it doesn't.
+    // One line that scrolls sideways. Phones: starts at the question box's left edge (scroll padding keeps
+    // the first chip there when snapping). Wider screens: centred when it fits.
     return (
-      <div className={cn("no-scrollbar -mx-4 snap-x overflow-x-auto px-4 md:mx-0 md:px-0", className)}>
-        <ul className="mx-auto flex w-max gap-1.5">{items}</ul>
+      <div className={cn("no-scrollbar -mx-4 snap-x scroll-pl-4 overflow-x-auto px-4 md:mx-0 md:scroll-pl-0 md:px-0", className)}>
+        <ul className="flex w-max gap-1.5 md:mx-auto">{items}</ul>
       </div>
     );
 
