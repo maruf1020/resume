@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, MotionConfig, motion } from "motion/react";
 import { ArrowDown } from "lucide-react";
 import { Composer, type ComposerHandle } from "@/components/chat/composer";
+import { useVisibleHeight } from "@/lib/use-visible-height";
 import { ConsentBanner } from "@/components/consent";
 import { PhotoViewerProvider } from "@/components/photo-viewer";
 import { AssistantMessage, UserMessage } from "@/components/chat/messages";
@@ -31,6 +32,8 @@ export function ChatApp({ initialIntent, aiEnabled = false }: { initialIntent?: 
   const [showDown, setShowDown] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const composer = useRef<ComposerHandle>(null);
+  // The question box stays above the on-screen keyboard on phones.
+  useVisibleHeight();
   const drawerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLButtonElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
@@ -177,7 +180,7 @@ export function ChatApp({ initialIntent, aiEnabled = false }: { initialIntent?: 
     </a>
     {/* The Privacy answer carries the same Accept/Reject, so the banner steps aside while it is shown. */}
     <ConsentBanner onLearnMore={persona.get("privacy") ? () => chatAsk("privacy") : undefined} hidden={activeIntent === "privacy" || drawer} />
-    <div className="flex h-dvh overflow-hidden">
+    <div className="flex h-[var(--app-h,100dvh)] overflow-hidden">
       {/* Desktop sidebar: full panel or a slim icon rail */}
       <motion.aside
         initial={false}

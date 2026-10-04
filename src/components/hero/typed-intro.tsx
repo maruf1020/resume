@@ -25,11 +25,13 @@ function parse(line: string): (string | number)[] {
 }
 const clean = (line: string) => line.replace(/\^\d+/g, "");
 
-const MAX_LINES = 4;
+/** Lines the longest sentence may take: 4 on wider screens; 8 on phones, so the text is about twice as big there. */
+const PHONE = "(max-width: 40rem)";
+const maxLines = () => (window.matchMedia(PHONE).matches ? 8 : 4);
 const LINE_HEIGHT = 1.06;
 
-/** Largest font size (px) at which `text` wraps into at most MAX_LINES lines inside `el`. */
-function fitFontSize(el: HTMLElement, text: string): number {
+/** Largest font size (px) at which `text` wraps into at most `lines` lines inside `el`. */
+function fitFontSize(el: HTMLElement, text: string, lines: number): number {
   const cs = getComputedStyle(el);
   const probe = document.createElement("div");
   probe.setAttribute("aria-hidden", "true");
@@ -44,17 +46,22 @@ function fitFontSize(el: HTMLElement, text: string): number {
     letterSpacing: "-0.035em",
     lineHeight: String(LINE_HEIGHT),
     whiteSpace: "normal",
+    // With reduced motion every element gets a tiny transition (globals.css), and a transitioning font size
+    // still reads as the old one right after it is set: the probe must never animate.
+    transitionProperty: "none",
   });
-  probe.textContent = `${text} ▍`;
+  // Room for the blinking caret. A letter of the heading font, not the caret glyph itself: a glyph from
+  // another font changes the line height while that font loads, and the line count (and size) with it.
+  probe.textContent = `${text} l`;
   document.body.appendChild(probe);
-  // 16px floor: at 320-360px wide the longest combination still fits the 4-line budget.
+  // 16px floor: at 320-360px wide the longest combination still fits the line budget.
   let lo = 16;
   let hi = 84;
   while (hi - lo > 0.5) {
     const mid = (lo + hi) / 2;
     probe.style.fontSize = `${mid}px`;
-    const lines = Math.round(probe.offsetHeight / (mid * LINE_HEIGHT));
-    if (lines <= MAX_LINES) lo = mid;
+    const used = Math.round(probe.offsetHeight / (mid * LINE_HEIGHT));
+    if (used <= lines) lo = mid;
     else hi = mid;
   }
   probe.remove();
@@ -68,17 +75,32 @@ export function TypedIntro() {
   const [active, setActive] = useState(-1);
   const ref = useRef<HTMLHeadingElement>(null);
 
-  // Size the heading once per width so the longest sentence still fits in 4 lines: no jumping while typing.
+  // Size the heading once per width so the longest sentence still fits in its line budget: no jumping while typing.
   // Layout effect: measured before the first client paint, so the size never visibly changes after hydration.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const fit = () => el.style.setProperty("--intro-size", `${fitFontSize(el, longestIntro)}px`);
+    const fit = () => {
+      // Not laid out yet: a measurement now would be nonsense; the observer below fires once it is.
+      if (!el.clientWidth) return;
+      el.style.setProperty("--intro-size", `${fitFontSize(el, longestIntro, maxLines())}px`);
+    };
     fit();
+    // Measure again once layout has settled (the sidebar's opening animation can change the width).
+    const raf = requestAnimationFrame(fit);
+    const later = setTimeout(fit, 400);
+    // The heading font may still be loading (fonts.ready can resolve before it even starts): measure again
+    // whenever a font finishes, so the size never stays based on the fallback font's widths.
     document.fonts?.ready.then(fit).catch(() => {});
+    document.fonts?.addEventListener("loadingdone", fit);
     const ro = new ResizeObserver(fit);
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(later);
+      ro.disconnect();
+      document.fonts?.removeEventListener("loadingdone", fit);
+    };
   }, [longestIntro]);
 
   useEffect(() => {

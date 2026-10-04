@@ -249,6 +249,13 @@ textarea:focus-visible {
   line-height: 1.06;
   min-height: calc(4 * 1.06em);
 }
+/* Phones: up to 8 lines at about twice the size (typed-intro.tsx measures the same budget). */
+@media (max-width: 40rem) {
+  .intro {
+    --intro-guess: clamp(1rem, 12.5vw - 0.3rem, 3.7rem);
+    min-height: calc(8 * 1.06em);
+  }
+}
 @media (min-width: 48rem) {
   .intro {
     --intro-guess: clamp(1rem, 6.25vw - 0.3rem, 3.7rem);
@@ -314,6 +321,24 @@ textarea:focus-visible {
   .btn,
   .side-row {
     min-height: 44px;
+  }
+}
+/* Phones: the quick-question chips under the question box are small, so more of them fit on one screen.
+   32px tall still clears the WCAG 2.2 target-size minimum (24px), and the chips are spaced apart. */
+@media (max-width: 40rem) {
+  .chip-sm {
+    gap: 0.25rem;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+  }
+  .chip-sm svg {
+    width: 0.8125rem;
+    height: 0.8125rem;
+  }
+}
+@media (pointer: coarse) and (max-width: 40rem) {
+  .chip-sm {
+    min-height: 2rem;
   }
 }
 
@@ -389,6 +414,10 @@ textarea:focus-visible {
   @media (min-width: 48rem) {
     padding-bottom: 2rem;
   }
+}
+/* While the on-screen keyboard is open, the home bar is hidden behind it: no extra gap under the box. */
+:root[data-keyboard="open"] .pb-safe {
+  padding-bottom: 0.5rem;
 }
 
 details > summary {

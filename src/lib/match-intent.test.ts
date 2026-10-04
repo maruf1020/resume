@@ -3,7 +3,7 @@ import { exactIntent, matchIntents, normalize } from "./match-intent";
 import type { Question } from "./persona/types";
 
 const q = (id: string, label: string, keywords: string[], primary = false): Question => ({ id, label, prompt: `${label}?`, icon: "sparkles", keywords, answers: ["x"], blocks: [], followUps: [], primary });
-const questions = [q("about", "About me", ["about", "who"], true), q("family", "পরিবার", ["পরিবার", "বাবা", "family"], true), q("project-x", "Walton", ["walton"])];
+const questions = [q("about", "About me", ["about", "who"], true), q("family", "পরিবার", ["পরিবার", "বাবা", "family"], true), q("project-x", "Atlas", ["atlas"])];
 
 describe("matching typed text", () => {
   it("keeps Bangla letters and vowel signs", () => {
@@ -14,7 +14,7 @@ describe("matching typed text", () => {
   it("finds Bangla and English keywords", () => {
     expect(matchIntents("পরিবার", questions)[0]?.id).toBe("family");
     expect(matchIntents("tell me about your family", questions)[0]?.id).toBe("family");
-    expect(matchIntents("walton", questions)[0]?.id).toBe("project-x");
+    expect(matchIntents("atlas", questions)[0]?.id).toBe("project-x");
   });
 
   it("lists the main topics for '/'", () => {

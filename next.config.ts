@@ -47,6 +47,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // The Postgres driver stays a plain Node dependency (it probes optional native bindings at runtime).
   serverExternalPackages: ["pg"],
+  // Files the server reads from disk at runtime: serverless hosts (Vercel) only ship what is listed here.
+  // The schema (applied on start) and the shipped CV PDF (served by /d/ until a publish prints a new one).
+  outputFileTracingIncludes: { "/**": ["./migrations/**/*.sql", "./public/Md-Maruf-Billah-CV.pdf"] },
   // The CV's old address keeps working: it is served by the documents route, which returns the PDF
   // printed at the last publish (or the one in public/ until then).
   async rewrites() {
