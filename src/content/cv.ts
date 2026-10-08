@@ -95,7 +95,7 @@ export const cv = {
       company: "Travel and hospitality group",
       role: "Lead Full-Stack Engineer",
       period: "2024 - Present",
-      location: "Remote",
+      location: "",
       context: "Travel and hospitality group.",
       bullets: [
         "Designed and built the API for a 9-vertical travel super-app as a NestJS modular monolith: 70 data models, ~236 endpoints and ~550 unit tests.",

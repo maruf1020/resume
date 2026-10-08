@@ -152,7 +152,7 @@ function Experience() {
             <span className="text-sm font-medium text-faint">{job.period}</span>
           </div>
           <p className="mt-1 font-semibold">
-            {job.role} <span className="font-normal text-muted">· {job.location}</span>
+            {job.role} {job.location && <span className="font-normal text-muted">· {job.location}</span>}
           </p>
           {job.context && <p className="text-sm text-muted">{job.context}</p>}
           <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[16px] leading-relaxed marker:text-faint">
