@@ -95,7 +95,7 @@ export const experience: Job[] = [
     ],
   },
   {
-    company: "Travel and hospitality group (confidential)",
+    company: "Travel and hospitality group",
     role: "Lead Full-Stack Engineer",
     period: "2024 - Present",
     location: "Remote",
