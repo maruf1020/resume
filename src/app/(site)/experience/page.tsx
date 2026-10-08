@@ -39,8 +39,7 @@ export default async function ExperiencePage() {
                 <p className="text-sm font-semibold text-faint">{job.period}</p>
               </header>
               <p className="mt-1 text-sm text-muted">
-                {job.location}
-                {job.context ? ` · ${job.context}` : ""}
+                {[job.location, job.context].filter(Boolean).join(" · ")}
               </p>
               <ul className="mt-4 list-disc space-y-1.5 pl-5 leading-relaxed marker:text-faint">
                 {job.bullets.map((b) => (

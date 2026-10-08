@@ -85,8 +85,7 @@ export function CvSheet({ cv }: { cv: CvData }) {
                 <span className="cv-date">{job.period}</span>
               </div>
               <p className="cv-meta">
-                {job.location}
-                {job.context ? ` · ${job.context}` : ""}
+                {[job.location, job.context].filter(Boolean).join(" · ")}
               </p>
               <ul className="cv-bullets">
                 {job.bullets.map((b, i) => (

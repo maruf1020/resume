@@ -26,15 +26,15 @@ export const skills: { group: string; items: string[] }[] = [
 ];
 
 export const cloud: { name: string; where: string }[] = [
-  { name: "AWS Lambda", where: "eHRMS API serverless on Lambda; Lambda functions for the QA analytics platform" },
+  { name: "AWS Lambda", where: "Company HR platform API serverless on Lambda; Lambda functions for the QA analytics platform" },
   { name: "ECS", where: "Containerised integration middleware for a UK retail group" },
   { name: "CloudWatch", where: "Logs and monitoring for Lambda services" },
   { name: "SES & SMTP", where: "Transactional email on every project - HR system, QA platform, client apps" },
-  { name: "S3", where: "Documents, exports and media - eHRMS and client apps" },
+  { name: "S3", where: "Documents, exports and media - the company HR platform and client apps" },
   { name: "EC2 & Lightsail", where: "Travel super-app API on EC2 (PM2, nginx); CI deploys snapshot the database before migrating" },
   { name: "Amplify", where: "Next.js hosting for the PM tool and AI Job Finder" },
-  { name: "Azure Blob Storage", where: "Media storage for Service Pro Plus" },
-  { name: "Azure Communication Services", where: "Email delivery for Service Pro Plus" },
+  { name: "Azure Blob Storage", where: "Media storage for a UK client's directory platform" },
+  { name: "Azure Communication Services", where: "Email delivery for a UK client's directory platform" },
   { name: "GitHub Actions", where: "CI/CD pipelines on every project, staging pipelines with smoke tests" },
   { name: "Docker", where: "Local stacks and background workers" },
 ];
@@ -68,7 +68,7 @@ export const quotes: Recommendation[] = [
   },
   {
     name: "Romain Berger",
-    title: "Team Lead Data & Optimization, Welyft",
+    title: "Team Lead Data & Optimization",
     relation: "Worked with Maruf on the same client team",
     date: "February 2024",
     highlight: "He consistently went above and beyond to ensure that our CRO projects were not only successful but also innovative.",
@@ -155,7 +155,7 @@ export const farewell: { name: string; text: string }[] = [
 ];
 
 export const facts: string[] = [
-  "I started my career building Android apps in Java - including a transport app for BRAC.",
+  "I started my career building Android apps in Java - including a transport-management app for a large NGO.",
   "ABTestLab, my open-source A/B testing CLI, started as a side project and became the company's standard build tool.",
   "I've shipped more than 1,500 A/B experiments for luxury brands. Gift finders are my favourite kind.",
   "I built a job finder that checks employers against official visa-sponsor registers.",
