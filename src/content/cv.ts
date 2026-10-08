@@ -15,7 +15,7 @@ export const cv = {
     "Shipped 1,500+ A/B experiments for 20+ brands of a global luxury group over 3 years.",
     "I lead 10 engineers and am a joint top contributor to the company HR platform's React front end (268 of 973 commits, 150+ merged PRs).",
     "Built a QA analytics platform almost alone: ~120k lines, 59 data models, 92-97% of commits.",
-    "Built the company's A/B tooling: ABTestPilot, used company-wide for 3 years, and ABTestLab, an open-source CLI now adopted company-wide.",
+    "Built the company's A/B tooling: an internal testing CLI used company-wide for 3 years, and ABTestLab, an open-source CLI now adopted company-wide.",
   ],
 
   skills: [
@@ -38,7 +38,7 @@ export const cv = {
       context: "Software and experimentation services for clients in France, the UK and Germany.",
       bullets: [
         "Lead a team of 10 engineers: technical design, code review and merges, estimates, mentoring and client calls.",
-        "Built ABTestLab (open-source A/B test CLI) and moved the agency's 1,700-experiment monorepo onto it; with ABTestPilot it is the team's standard tooling.",
+        "Built ABTestLab (open-source A/B test CLI) and moved the agency's 1,700-experiment monorepo onto it; with the internal testing CLI it is the team's standard tooling.",
       ],
       engagements: [
         {
@@ -51,7 +51,7 @@ export const cv = {
           stack: "JavaScript, SCSS, GSAP, VWO, AB Tasty, Dynamic Yield, Kameleoon, GitHub Actions",
         },
         {
-          title: "eHRMS - company employee-management platform - Lead Full-Stack Engineer",
+          title: "Company employee-management platform - Lead Full-Stack Engineer",
           period: "2023 - Present",
           bullets: [
             "Company-wide platform for leave, holidays, profiles, calendars, shifts, KPIs and time tracking; joint top contributor to the React front end (268 of 973 commits, 150+ merged PRs) and third-highest on the NestJS API.",
@@ -83,9 +83,9 @@ export const cv = {
           title: "Internal and client products",
           period: "2025 - 2026",
           bullets: [
-            "ELX Project Management Tool: 103 of 167 commits of an Asana-style app with realtime collaboration, RBAC and a CRO module.",
-            "Service Pro Plus (UK client): most of a garage directory and review platform with OTP login and Maps search, on AWS and Azure.",
-            "Tour Console (sole developer): the company's annual-tour app - tournaments, roommate matching, polls, moderated feed - plus a React Native app.",
+            "Project management tool: 103 of 167 commits of an Asana-style app with realtime collaboration, RBAC and a CRO module.",
+            "Directory platform (UK client): most of a garage directory and review platform with OTP login and Maps search, on AWS and Azure.",
+            "Company tour app (sole developer): the company's annual-tour app - tournaments, roommate matching, polls, moderated feed - plus a React Native app.",
           ],
           stack: "Next.js, Prisma, PostgreSQL, Firebase, Socket.IO, AWS (Amplify, EC2, S3, SES), Azure, Docker",
         },
@@ -110,7 +110,7 @@ export const cv = {
       period: "2021 - 2022",
       location: "Dhaka, Bangladesh",
       context: "",
-      bullets: ["Developed Android applications in Java, including a transport-management app for BRAC."],
+      bullets: ["Developed Android applications in Java, including a transport-management app for a large NGO."],
       engagements: [],
     },
   ],
@@ -129,7 +129,7 @@ export const cv = {
     {
       name: "TrustPortal, ShadowFeed, TournaTrack",
       meta: "Next.js, Prisma, Firebase",
-      text: "An interaction-design concept site, an anonymous moderated company feed, and the tournament app that became Tour Console.",
+      text: "An interaction-design concept site, an anonymous moderated company feed, and the tournament app that became the company's tour app.",
     },
   ],
 

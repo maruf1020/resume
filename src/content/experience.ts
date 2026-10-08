@@ -41,7 +41,7 @@ export const experience: Job[] = [
         stack: ["JavaScript", "SCSS", "GSAP", "Webpack", "VWO", "AB Tasty", "Dynamic Yield", "Kameleoon", "GitHub Actions"],
       },
       {
-        title: "eHRMS - company HR system",
+        title: "Company HR platform",
         role: "Lead Full-Stack Engineer",
         period: "2023 - Present",
         bullets: [
@@ -62,7 +62,7 @@ export const experience: Job[] = [
           "Built a QA and performance-analytics platform almost single-handedly - 92-97% of commits, ~120k lines of TypeScript and JavaScript across a NestJS API (59 data models, 38 modules) and a React 19 app.",
           "Engineered a Jira → PostgreSQL sync engine: full, incremental and webhook modes, idempotent entity mapping, per-config cron without overlapping runs, live progress over WebSockets and AES-256-GCM-encrypted API tokens.",
           "Designed a configurable KPI system: 14 KPI equations, a JSONB bug-scoring rule engine, ticket credit based on each person's share of logged hours, cached leaderboards and target boards.",
-          "Integrated HR leave data from eHRMS and built a Slack bot with slash commands and daily digests.",
+          "Integrated HR leave data from the company HR platform and built a Slack bot with slash commands and daily digests.",
           "Cloud & DevOps: deployed on AWS EC2 with AWS Lambda functions, SMTP/SES email, and CI/CD pipelines on GitHub Actions.",
         ],
         stack: ["NestJS 11", "Prisma 7", "PostgreSQL", "Socket.IO", "React 19", "TanStack", "Jira API", "Slack API", "AWS EC2", "AWS Lambda", "SES / SMTP", "GitHub Actions"],
@@ -84,10 +84,10 @@ export const experience: Job[] = [
         role: "Full-Stack Engineer",
         period: "2025 - 2026",
         bullets: [
-          "ELX Project Management Tool: wrote 103 of 167 commits of an Asana-style app with realtime collaboration, email OTP login, workspace RBAC, Trello import and a CRO programme module.",
-          "Service Pro Plus (UK client): built most of a garage directory and review platform with OTP login, approval workflow and Google Maps search, on AWS and Azure.",
-          "Tour Console (sole developer): the company's annual-tour app - multi-tenant Microsoft login, multi-season events, tournaments, roommate matching, polls, a moderated community feed, PWA and a companion React Native app.",
-          "ABTestPilot: the company's internal A/B testing CLI, used across the company for 3 years to build, preview and ship experiments.",
+          "Project management tool: wrote 103 of 167 commits of an Asana-style app with realtime collaboration, email OTP login, workspace RBAC, Trello import and a CRO programme module.",
+          "Directory platform (UK client): built most of a garage directory and review platform with OTP login, approval workflow and Google Maps search, on AWS and Azure.",
+          "Company tour app (sole developer): the company's annual-tour app - multi-tenant Microsoft login, multi-season events, tournaments, roommate matching, polls, a moderated community feed, PWA and a companion React Native app.",
+          "Internal A/B testing CLI: the company's own tool, used across the company for 3 years to build, preview and ship experiments.",
           "Cloud & DevOps: AWS (Amplify, EC2, S3, SES/SMTP) and Azure (Blob Storage, Communication Services), Docker, and CI/CD pipelines on GitHub Actions.",
         ],
         stack: ["AWS Amplify", "AWS EC2", "S3", "SES / SMTP", "Azure", "Docker", "GitHub Actions"],
@@ -113,6 +113,6 @@ export const experience: Job[] = [
     role: "Software Engineer",
     period: "2021 - 2022",
     location: "Dhaka, Bangladesh",
-    bullets: ["Developed Android applications in Java, including a transport-management app for BRAC."],
+    bullets: ["Developed Android applications in Java, including a transport-management app for a large NGO."],
   },
 ];
