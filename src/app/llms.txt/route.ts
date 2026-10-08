@@ -28,7 +28,7 @@ export async function GET() {
     `- [Chat](${absoluteUrl("/")}): ask about my work in a chat interface`,
     "",
     "## Experience",
-    ...experience.map((j) => `- ${j.role}, ${j.company} (${j.period}, ${j.location})`),
+    ...experience.map((j) => `- ${j.role}, ${j.company} (${[j.period, j.location].filter(Boolean).join(", ")})`),
     "",
     "## Projects",
     ...projects.map((p) => `- [${p.name}](${absoluteUrl(`/projects/${p.id}/`)}): ${p.tagline}`),
