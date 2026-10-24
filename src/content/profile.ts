@@ -29,7 +29,7 @@ export const profile = {
       { k: "Leadership", v: "Leading a team of 10: architecture, code review, estimates, mentoring and client calls" },
     ],
   },
-  email: "marufbillah03033@gmail.com",
+  email: "marufbillah1020@gmail.com",
   phone: "+880 1675 708783",
   phoneHref: "tel:+8801675708783",
   links: {
