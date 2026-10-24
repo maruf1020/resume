@@ -200,15 +200,6 @@
   height: 10px;
   color: var(--cv-faint);
 }
-.cv-availability {
-  margin-top: 12px;
-  border-left: 2.5px solid var(--cv-accent);
-  background: #fff7f2;
-  padding: 5px 10px;
-  font-size: 9pt;
-  font-weight: 600;
-  color: #7c2d12;
-}
 
 /* ---------- sections ---------- */
 .cv-section {
@@ -376,9 +367,5 @@
   }
   .cv-section {
     margin-top: 9px;
-  }
-  .cv-availability {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
   }
 }

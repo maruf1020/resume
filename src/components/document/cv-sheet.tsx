@@ -49,7 +49,6 @@ export function CvSheet({ cv }: { cv: CvData }) {
           </ul>
         </div>
       </header>
-      <p className="cv-availability">{cv.availability}</p>
 
       <Section title="Profile">
         <p className="cv-text">{cv.profile}</p>

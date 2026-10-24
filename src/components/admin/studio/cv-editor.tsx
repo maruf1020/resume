@@ -66,7 +66,6 @@ export function CvEditor({ draft, data }: { draft: DraftApi; data: unknown }) {
           }
         >
           <TextInput label="Title under the name" value={cv.title} onChange={(v) => set((c) => void (c.title = v))} />
-          <TextInput label="Availability line" value={cv.availability} onChange={(v) => set((c) => void (c.availability = v))} />
           <div className="flex flex-wrap items-end gap-4">
             <TextInput label="Photo" value={cv.photo} onChange={(v) => set((c) => void (c.photo = v))} className="min-w-64 flex-1" mono />
             <Toggle label="Show the photo" hint="Usual in Europe; leave out for UK/US applications." checked={cv.showPhoto} onChange={(v) => set((c) => void (c.showPhoto = v))} />
